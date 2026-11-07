@@ -1,0 +1,16 @@
+{
+  "short_name": "BabyCare",
+  "name": "HD²LAB BabyCare 육아 플랫폼",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/babycare/",
+  "background_color": "#FDFBF7",
+  "theme_color": "#3B82F6",
+  "display": "standalone",
+  "orientation": "portrait"
+}
