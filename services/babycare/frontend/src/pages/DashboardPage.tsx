@@ -14,7 +14,9 @@ import {
   Baby,
   ChevronRight,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  BarChart3,
+  Upload,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 
@@ -167,6 +169,31 @@ export const DashboardPage: React.FC = () => {
               성장 측정
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Analytics Import Banner */}
+      <div
+        onClick={() => navigate('/analytics')}
+        className="cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all group"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm group-hover:scale-105 transition-transform">
+            <BarChart3 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900 text-base">육아 통계 ZIP 분석 플랫폼</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-600 text-white">NEW</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-0.5">
+              BabyTime 등에서 내보낸 ZIP/CSV 파일을 업로드하면 15일치 수유 추세, 밤낮 수면 패턴, 소아과 AI 평가 보고서를 생성합니다.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-white/80 px-3.5 py-2 rounded-xl border border-emerald-200 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+          <span>분석 시작하기</span>
+          <ChevronRight className="w-4 h-4" />
         </div>
       </div>
 

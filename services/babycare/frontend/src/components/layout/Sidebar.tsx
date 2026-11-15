@@ -8,6 +8,7 @@ import {
   BookOpen,
   Bot,
   Users,
+  BarChart3,
 } from 'lucide-react';
 import { useChild } from '../../context/ChildContext';
 
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { path: '/care', label: '수유 · 수면 기록', icon: Clock },
   { path: '/calendar', label: '접종 · 검진 일정', icon: Calendar },
   { path: '/knowledge', label: '월령별 육아 정보', icon: BookOpen },
+  { path: '/analytics', label: '통계 ZIP 분석', icon: BarChart3, badge: 'NEW' },
   { path: '/ai', label: '향단이 Baby AI', icon: Bot, badge: 'AI' },
   { path: '/family', label: '아이 프로필 · 가족', icon: Users },
 ];

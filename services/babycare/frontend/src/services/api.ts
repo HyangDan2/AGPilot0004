@@ -207,4 +207,24 @@ export const api = {
       }),
     }),
   getConversations: () => request<any[]>('/ai/conversations'),
+
+  // Analytics & Stat Importer
+  uploadStatZip: async (file: File, childId?: string, autoCreateChild: boolean = true) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (childId) formData.append('child_id', childId);
+    formData.append('auto_create_child', String(autoCreateChild));
+
+    const headers = getAuthHeader();
+    const res = await fetch(`${API_BASE}/analytics/upload-zip`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new ApiError(res.status, err?.detail || '통계 파일 분석 실패');
+    }
+    return res.json();
+  },
 };

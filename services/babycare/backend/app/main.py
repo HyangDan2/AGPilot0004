@@ -15,6 +15,7 @@ from app.api.v1.calendar import router as calendar_router
 from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.ai import router as ai_router
 from app.api.v1.health import router as health_router
+from app.api.v1.analytics import router as analytics_router
 
 from app.services.knowledge_service import seed_knowledge_base
 from app.services.calendar_service import seed_health_rules
@@ -67,6 +68,7 @@ app.include_router(calendar_router, prefix=settings.API_V1_STR)
 app.include_router(knowledge_router, prefix=settings.API_V1_STR)
 app.include_router(ai_router, prefix=settings.API_V1_STR)
 app.include_router(health_router, prefix=settings.API_V1_STR)
+app.include_router(analytics_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

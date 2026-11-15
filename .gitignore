@@ -41,6 +41,7 @@ backups/
 
 # Vite / Frontend build
 services/babycare/frontend/dist/
+*.tsbuildinfo
 .env.local
 .env.*.local
 

@@ -12,6 +12,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { KnowledgePage } from './pages/KnowledgePage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { FamilyPage } from './pages/FamilyPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 import { LoginPage } from './pages/LoginPage';
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ export const App: React.FC = () => {
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="knowledge" element={<KnowledgePage />} />
                 <Route path="ai" element={<AIAssistantPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="family" element={<FamilyPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
