@@ -1,0 +1,17 @@
+[Unit]
+Description=HD2Lab BabyCare Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=jaehyukshim
+WorkingDirectory=/Users/jaehyukshim/AGWS/AGPilot0004/services/babycare/backend
+EnvironmentFile=/Users/jaehyukshim/AGWS/AGPilot0004/deploy/.env
+ExecStart=/Users/jaehyukshim/AGWS/AGPilot0004/services/babycare/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8004 --workers 2
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
