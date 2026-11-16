@@ -112,10 +112,30 @@ export const DashboardPage: React.FC = () => {
 
   if (!activeChild) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <Baby className="w-16 h-16 text-blue-400 mb-4 animate-bounce" />
-        <h2 className="text-xl font-bold text-slate-800">등록된 아이 프로필이 없습니다</h2>
-        <p className="text-sm text-slate-500 mt-1">상단 메뉴에서 아이를 등록하고 맞춤 관리를 시작해 보세요.</p>
+      <div className="flex flex-col items-center justify-center rounded-3xl bg-white border border-[#E8E4F2] p-10 md:p-14 text-center shadow-sm max-w-2xl mx-auto my-6">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F1ECFE] text-[#8B6CE8] mb-4">
+          <Baby className="w-9 h-9" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-[#1D192B]">등록된 아이 프로필이 없습니다</h2>
+        <p className="text-sm text-[#68627A] mt-2 max-w-md leading-relaxed">
+          모든 아이 정보와 육아 기록은 외부 서버가 아닌 고객님의 브라우저 로컬 스토리지에만 안전하게 보관됩니다.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+          <button
+            onClick={() => navigate('/analytics')}
+            className="flex items-center gap-2 rounded-2xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-5 py-3 text-sm font-bold shadow-sm transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            육아 통계 ZIP으로 바로 시작하기
+          </button>
+          <button
+            onClick={() => navigate('/family')}
+            className="flex items-center gap-2 rounded-2xl bg-[#F4F1FC] hover:bg-[#EAE4FA] text-[#6B4CD6] px-5 py-3 text-sm font-bold border border-[#E8E4F2] transition-colors"
+          >
+            <PlusCircle className="w-4 h-4" />
+            직접 아이 등록하기
+          </button>
+        </div>
       </div>
     );
   }

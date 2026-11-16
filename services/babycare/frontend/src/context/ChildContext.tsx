@@ -43,16 +43,6 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      if (list.length === 0) {
-        const starter = localStore.upsertChild({
-          name: '우리 아가 (별이)',
-          birth_date: '2026-06-15',
-          sex: 'female',
-          is_premature: false,
-        });
-        list = [starter];
-      }
-
       setChildrenList(list);
 
       const savedId = localStore.getActiveChildId() || localStorage.getItem('babycare_active_child_id');
@@ -62,6 +52,8 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else if (list.length > 0) {
         setActiveChildIdState(list[0].id);
         localStore.setActiveChildId(list[0].id);
+      } else {
+        setActiveChildIdState(null);
       }
     } finally {
       setIsLoading(false);

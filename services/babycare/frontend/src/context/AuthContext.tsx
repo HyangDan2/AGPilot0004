@@ -21,17 +21,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
+      const token = localStorage.getItem('babycare_access_token');
+      if (!token) {
+        setUser(null);
+        return;
+      }
       const me = await api.getMe();
       setUser(me);
     } catch {
-      // If not logged in, auto-login with default demo user in dev
-      try {
-        const res = await api.devLogin('parent@hd2lab.org', '향단이 부모', 'user');
-        localStorage.setItem('babycare_access_token', res.access_token);
-        setUser(res.user);
-      } catch (e) {
-        setUser(null);
-      }
+      localStorage.removeItem('babycare_access_token');
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
