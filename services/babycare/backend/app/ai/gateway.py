@@ -110,7 +110,7 @@ class HD2AIGateway(BaseLLMGateway):
         }
         try:
             transport = httpx.AsyncHTTPTransport(uds=self.socket_path)
-            async with httpx.AsyncClient(transport=transport, timeout=20.0) as client:
+            async with httpx.AsyncClient(transport=transport, timeout=90.0) as client:
                 resp = await client.post(
                     f"http://localhost/internal/{self.route}/chat/completions",
                     json=payload,
