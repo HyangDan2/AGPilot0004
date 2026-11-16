@@ -31,12 +31,12 @@ RSS_FEEDS = [
     (
         "질병관리청 예방접종·영유아 소식",
         "https://news.google.com/rss/search?q=%EC%A7%88%EB%B3%91%EA%B4%80%EB%A6%AC%EC%B2%AD+%EC%98%88%EB%B0%A9%EC%A0%91%EC%A2%85+OR+%EC%98%81%EC%9C%A0%EC%95%84&hl=ko&gl=KR&ceid=KR:ko",
-        "health",
+        "Health & Safety",
     ),
     (
         "소아청소년과 육아·수유·이유식 소식",
         "https://news.google.com/rss/search?q=%EC%86%8C%EC%95%84%EC%B2%AD%EC%86%8C%EB%85%84%EA%B3%BC+%EC%9C%A1%EC%95%84+OR+%EC%88%98%EC%9C%A0+OR+%EC%9D%B4%EC%9C%A0%EC%8B%9D&hl=ko&gl=KR&ceid=KR:ko",
-        "nutrition",
+        "Feeding & Nutrition",
     ),
 ]
 
@@ -139,13 +139,13 @@ async def sync_rss_articles(max_new_per_run: int = 3) -> int:
                     article = ContentArticle(
                         title=clean_title,
                         summary=f"{feed_name} 최신 업데이트 · {clean_title[:120]}",
-                        body=body,
+                        content_body=body,
                         category=category,
-                        age_month_start=0,
-                        age_month_end=36,
+                        age_months_min=0,
+                        age_months_max=36,
                         source_id=source.id,
                         is_approved=True,
-                        is_featured=False,
+                        review_status="reviewed",
                     )
                     db.add(article)
                     db.commit()
