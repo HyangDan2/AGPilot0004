@@ -114,7 +114,7 @@ async def sync_rss_articles(max_new_per_run: int = 3) -> int:
                         name=feed_name,
                         organization="공공·언론 육아/보건 RSS",
                         url=feed_url,
-                        trust_level="official",
+                        license="Public RSS",
                     )
                     db.add(source)
                     db.commit()
