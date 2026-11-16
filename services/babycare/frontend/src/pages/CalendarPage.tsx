@@ -192,10 +192,10 @@ export const CalendarPage: React.FC = () => {
       <div className="rounded-2xl bg-amber-50/70 p-4 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-3">
         <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-bold">의료기관 연동 안내</p>
+          <p className="font-bold">질병관리청(NIP) · 영유아 건강검진 기준표 안내</p>
           <p className="text-amber-800 leading-relaxed">
-            국가 공공 보건포털(질병관리청 예방접종도우미)과의 자동 연동은 현재 권한 인가 절차 준비 중입니다.
-            현재 완료 표시는 <strong>양육자 본인이 직접 확인하여 입력한 기록(자가 보고)</strong>으로 저장 및 관리됩니다.
+            본 일정은 질병관리청 국가예방접종(NIP) 및 국민건강보험공단 영유아 건강검진 공식 기준표(2026.11)를 바탕으로 아기 생년월일에 맞춰 자동 계산됩니다.
+            접종 완료 여부는 외부 기관 자동 조회가 아닌 <strong>양육자 직접 체크(브라우저 로컬 저장)</strong>로 관리됩니다.
           </p>
         </div>
       </div>

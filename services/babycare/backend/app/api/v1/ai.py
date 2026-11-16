@@ -1,10 +1,11 @@
 import json
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.entities import AIConversation, AIMessage, User, ConsentRecord
 from app.schemas.ai import AIChatRequest, AIChatResponse, AIConversationRead, AIMessageRead, SourceCitation
-from app.services.auth_adapter import get_current_user
+from app.services.auth_adapter import get_current_user, get_current_user_optional
 from app.services.permission_service import verify_child_access
 from app.ai.rag_engine import HyangDaniRAGService
 
@@ -13,12 +14,23 @@ router = APIRouter(prefix="/ai", tags=["HyangDani Baby AI"])
 @router.post("/chat", response_model=AIChatResponse)
 async def chat_with_hyangdani(
     data: AIChatRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """
     RAG-grounded conversational agent for parenting knowledge with strict safety guards.
+    Supports both authenticated DB-persisted sessions and stateless Local-First guest sessions.
     """
+    rag_service = HyangDaniRAGService(db)
+
+    if current_user is None:
+        return await rag_service.answer_question(
+            query=data.message,
+            conversation_id=data.conversation_id or "local-session",
+            child_id=None,
+            use_child_context=False,
+        )
+
     # 1. Child context consent check
     if data.use_child_context and data.child_id:
         verify_child_access(data.child_id, current_user, db, min_role="viewer")
@@ -60,7 +72,6 @@ async def chat_with_hyangdani(
     db.commit()
 
     # 4. Invoke RAG engine
-    rag_service = HyangDaniRAGService(db)
     response = await rag_service.answer_question(
         query=data.message,
         conversation_id=conv.id,
@@ -84,7 +95,12 @@ async def chat_with_hyangdani(
     return response
 
 @router.get("/conversations", response_model=list[AIConversationRead])
-def list_conversations(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_conversations(
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    if current_user is None:
+        return []
     convs = db.query(AIConversation).filter(
         AIConversation.user_id == current_user.id
     ).order_by(AIConversation.updated_at.desc()).all()
