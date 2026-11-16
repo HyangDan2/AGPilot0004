@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+import os
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, timedelta
+from typing import Optional
 from app.core.database import get_db
 from app.models.entities import HealthEvent, User
 from app.schemas.calendar import (
@@ -9,8 +12,10 @@ from app.schemas.calendar import (
 from app.services.auth_adapter import get_current_user
 from app.services.permission_service import verify_child_access
 from app.services.calendar_service import update_event_overdue_statuses
+from app.knowledge.health_rules_data import VACCINATION_RULES, CHECKUP_RULES
 
 router = APIRouter(prefix="/children/{child_id}/calendar", tags=["Health Calendar"])
+public_calendar_router = APIRouter(prefix="/health-rules", tags=["Health Calendar"])
 
 @router.get("", response_model=list[HealthEventRead])
 def list_health_events(
@@ -127,3 +132,56 @@ def get_calendar_summary(
         completed_count=completed_cnt,
         total_count=len(all_events)
     )
+
+
+def _compute_scheduled_date(birth: date, months_min: float) -> str:
+    days = int(round(months_min * 30.4375))
+    return (birth + timedelta(days=days)).isoformat()
+
+
+@public_calendar_router.get("/live")
+def get_live_health_rules(birth_date: Optional[str] = Query(None, description="YYYY-MM-DD")):
+    """
+    Returns live national immunization (NIP) and infant health checkup rules.
+    Supports optional live JSON override on disk and dynamic D-Day/date calculation
+    for local-first (unauthenticated) baby profiles.
+    """
+    override_path = os.getenv("HEALTH_RULES_LIVE_JSON", "./data/health_rules_live.json")
+    vaccinations = VACCINATION_RULES
+    checkups = CHECKUP_RULES
+    version = "2026.11-nip"
+    updated_at = "2026-11-16"
+
+    if os.path.exists(override_path):
+        try:
+            with open(override_path, "r", encoding="utf-8") as f:
+                custom = json.load(f)
+            vaccinations = custom.get("vaccinations", vaccinations)
+            checkups = custom.get("checkups", checkups)
+            version = custom.get("version", version)
+            updated_at = custom.get("updated_at", updated_at)
+        except Exception:
+            pass
+
+    parsed_birth: Optional[date] = None
+    if birth_date:
+        try:
+            parsed_birth = date.fromisoformat(birth_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="birth_date 형식은 YYYY-MM-DD 여야 합니다.")
+
+    def _enrich(rule: dict, event_type: str) -> dict:
+        item = {**rule, "event_type": event_type}
+        if parsed_birth:
+            sched = _compute_scheduled_date(parsed_birth, float(rule.get("target_age_months_min", 0)))
+            item["scheduled_date"] = sched
+            item["d_day"] = (date.fromisoformat(sched) - date.today()).days
+        return item
+
+    return {
+        "version": version,
+        "updated_at": updated_at,
+        "source": "질병관리청 예방접종도우미 (NIP) · 국민건강보험공단 영유아 건강검진",
+        "vaccinations": [_enrich(r, "vaccination") for r in vaccinations],
+        "checkups": [_enrich(r, "checkup") for r in checkups],
+    }

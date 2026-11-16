@@ -11,18 +11,21 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 md:px-8 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[#E8E4F2] bg-[#FAFAFD]/95 px-4 md:px-8 backdrop-blur-md">
       {/* Brand & Mark */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span className="hd2-skew-mark" />
-          <span className="text-xl font-extrabold tracking-tight text-slate-900">
-            HD²LAB <span className="text-blue-600 font-bold">BabyCare</span>
+          <span className="text-xl font-extrabold tracking-tight text-[#1D192B]">
+            HD²LAB <span className="text-[#8B6CE8] font-bold">BabyCare</span>
           </span>
         </div>
-        <span className="hidden sm:inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200/60">
-          v1.0
-        </span>
+        <a
+          href="/service/"
+          className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#F1ECFE] px-2.5 py-0.5 text-xs font-semibold text-[#6B4CD6] border border-[#E8E4F2] hover:bg-[#8B6CE8] hover:text-white transition-colors"
+        >
+          Service Hub ↗
+        </a>
       </div>
 
       {/* Child Switcher & User Account */}
@@ -31,13 +34,13 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
         <div className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 text-sm font-semibold text-slate-800 transition-colors border border-slate-200/50"
+            className="flex items-center gap-2 rounded-xl bg-[#F4F1FC] hover:bg-[#EAE4FA] px-3 py-1.5 text-sm font-semibold text-[#1D192B] transition-colors border border-[#E8E4F2]"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-xs">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#8B6CE8] text-white font-bold text-xs">
               {activeChild ? activeChild.name.charAt(0) : <Baby className="w-3.5 h-3.5" />}
             </div>
             <span className="max-w-[100px] truncate">{activeChild?.name || '아이 선택'}</span>
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+            <ChevronDown className="w-4 h-4 text-[#68627A]" />
           </button>
 
           {dropdownOpen && (

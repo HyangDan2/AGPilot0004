@@ -11,7 +11,7 @@ from app.api.v1.children import router as children_router
 from app.api.v1.growth import router as growth_router
 from app.api.v1.feeding import router as feeding_router
 from app.api.v1.sleep import router as sleep_router
-from app.api.v1.calendar import router as calendar_router
+from app.api.v1.calendar import router as calendar_router, public_calendar_router
 from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.ai import router as ai_router
 from app.api.v1.health import router as health_router
@@ -65,6 +65,7 @@ app.include_router(growth_router, prefix=settings.API_V1_STR)
 app.include_router(feeding_router, prefix=settings.API_V1_STR)
 app.include_router(sleep_router, prefix=settings.API_V1_STR)
 app.include_router(calendar_router, prefix=settings.API_V1_STR)
+app.include_router(public_calendar_router, prefix=settings.API_V1_STR)
 app.include_router(knowledge_router, prefix=settings.API_V1_STR)
 app.include_router(ai_router, prefix=settings.API_V1_STR)
 app.include_router(health_router, prefix=settings.API_V1_STR)

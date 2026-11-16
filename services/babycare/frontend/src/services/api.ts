@@ -163,6 +163,8 @@ export const api = {
   },
 
   // Calendar
+  getLiveHealthRules: (birthDate?: string) =>
+    request<any>(`/health-rules/live${birthDate ? `?birth_date=${encodeURIComponent(birthDate)}` : ''}`),
   getCalendarEvents: (childId: string, eventType?: string) => {
     const q = eventType ? `?event_type=${eventType}` : '';
     return request<any[]>(`/children/${childId}/calendar${q}`);

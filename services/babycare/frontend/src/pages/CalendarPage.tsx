@@ -37,8 +37,66 @@ export const CalendarPage: React.FC = () => {
     if (!activeChild) return;
     setIsLoading(true);
     try {
-      const data = await api.getCalendarEvents(activeChild.id);
-      setEvents(data);
+      if (!activeChild.id.startsWith('local-')) {
+        try {
+          const data = await api.getCalendarEvents(activeChild.id);
+          setEvents(data);
+          return;
+        } catch {
+          // Fallback to live rules for unauthenticated / local-first users
+        }
+      }
+
+      const live = await api.getLiveHealthRules(activeChild.birth_date);
+      const localCompleted: Record<string, any> = JSON.parse(
+        localStorage.getItem(`babycare_cal_done_${activeChild.id}`) || '{}'
+      );
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const mapped: HealthEvent[] = [
+        ...(live.vaccinations || []).map((v: any) => {
+          const id = `live-${v.code}`;
+          const done = localCompleted[id];
+          const sched = v.scheduled_date || todayStr;
+          const status = done ? 'completed' : sched < todayStr ? 'overdue' : 'scheduled';
+          return {
+            id,
+            child_id: activeChild.id,
+            rule_id: v.code,
+            event_type: 'vaccine',
+            title: v.name,
+            scheduled_date: sched,
+            completed_date: done?.completed_date,
+            status,
+            is_self_reported: true,
+            facility_name: done?.facility_name,
+            notes: done?.notes || v.description,
+            created_at: new Date().toISOString(),
+          };
+        }),
+        ...(live.checkups || []).map((c: any) => {
+          const id = `live-${c.code}`;
+          const done = localCompleted[id];
+          const sched = c.scheduled_date || todayStr;
+          const status = done ? 'completed' : sched < todayStr ? 'overdue' : 'scheduled';
+          return {
+            id,
+            child_id: activeChild.id,
+            rule_id: c.code,
+            event_type: 'checkup',
+            title: c.name,
+            scheduled_date: sched,
+            completed_date: done?.completed_date,
+            status,
+            is_self_reported: true,
+            facility_name: done?.facility_name,
+            notes: done?.notes || c.description,
+            created_at: new Date().toISOString(),
+          };
+        }),
+      ];
+      mapped.sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+      setEvents(mapped);
     } finally {
       setIsLoading(false);
     }
@@ -48,6 +106,20 @@ export const CalendarPage: React.FC = () => {
     e.preventDefault();
     if (!activeChild || !selectedEvent) return;
     try {
+      if (selectedEvent.id.startsWith('live-')) {
+        const key = `babycare_cal_done_${activeChild.id}`;
+        const existing = JSON.parse(localStorage.getItem(key) || '{}');
+        existing[selectedEvent.id] = {
+          completed_date: completedDate,
+          facility_name: facilityName || undefined,
+          notes: notes || selectedEvent.notes,
+        };
+        localStorage.setItem(key, JSON.stringify(existing));
+        setSelectedEvent(null);
+        loadCalendarEvents();
+        return;
+      }
+
       await api.updateCalendarEvent(activeChild.id, selectedEvent.id, {
         completed_date: completedDate,
         status: 'completed',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useChild } from '../context/ChildContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { localStore } from '../services/localStore';
 import {
   Upload,
   FileArchive,
@@ -62,20 +63,22 @@ export const AnalyticsPage: React.FC = () => {
       let res: any;
       if (user && syncToAccount) {
         res = await api.uploadStatZip(file, activeChild?.id, true);
-        await refreshChildren();
-        if (res.child_id) {
-          setActiveChildId(res.child_id);
-        }
       } else {
         res = await api.analyzeStatZipStateless(file);
       }
 
-      setAnalysisResult(res);
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(res));
-      } catch {
-        // Ignore quota exceeded on localStorage
-      }
+      // Sync detected child profile & merge multi-month records into localStorage
+      const childName = res.child_name || activeChild?.name || '아이';
+      const localChild = localStore.upsertChild({
+        id: res.child_id || undefined,
+        name: childName,
+        birth_date: res.estimated_birth_date || activeChild?.birth_date || '2026-06-09',
+      });
+      await refreshChildren();
+      setActiveChildId(localChild.id);
+
+      const merged = localStore.mergeAnalyticsResult(childName, res);
+      setAnalysisResult(merged);
     } catch (err: any) {
       alert(err.message || '파일 분석 중 오류가 발생했습니다.');
     } finally {
@@ -84,7 +87,7 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   const handleClearLocalData = () => {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStore.clearAnalytics();
     setAnalysisResult(null);
     setSelectedFile(null);
   };

@@ -33,3 +33,15 @@ def test_calendar_auto_generation_and_completion(client, owner_headers):
     assert summary_res.status_code == 200
     sdata = summary_res.json()
     assert sdata["completed_count"] >= 1
+
+
+def test_live_health_rules_no_auth(client):
+    res = client.get("/api/babycare/v1/health-rules/live?birth_date=2026-06-09")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["version"]
+    assert len(data["vaccinations"]) >= 10
+    assert len(data["checkups"]) >= 5
+    first_vac = data["vaccinations"][0]
+    assert "scheduled_date" in first_vac
+    assert "d_day" in first_vac

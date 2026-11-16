@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Child } from '../types';
 import { api } from '../services/api';
+import { localStore } from '../services/localStore';
 import { useAuth } from './AuthContext';
 
 interface ChildContextType {
@@ -21,21 +22,29 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      loadChildren();
-    } else {
-      setChildrenList([]);
-      setActiveChildIdState(null);
-    }
+    loadChildren();
   }, [user]);
 
   const loadChildren = async () => {
     setIsLoading(true);
     try {
-      let list = await api.getChildren();
-      // If no child exists, seed a starter child profile
+      // Local-first: always read localStorage baby profiles first
+      let list = localStore.getChildren();
+
+      if (user) {
+        try {
+          const remoteList = await api.getChildren();
+          for (const rc of remoteList) {
+            localStore.upsertChild(rc);
+          }
+          list = localStore.getChildren();
+        } catch {
+          // Offline or unauthenticated: rely on localStore
+        }
+      }
+
       if (list.length === 0) {
-        const starter = await api.createChild({
+        const starter = localStore.upsertChild({
           name: '우리 아가 (별이)',
           birth_date: '2026-06-15',
           sex: 'female',
@@ -43,19 +52,17 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
         list = [starter];
       }
+
       setChildrenList(list);
 
-      // Restore active child selection or pick first
-      const savedId = localStorage.getItem('babycare_active_child_id');
+      const savedId = localStore.getActiveChildId() || localStorage.getItem('babycare_active_child_id');
       const found = list.find((c) => c.id === savedId);
       if (found) {
         setActiveChildIdState(found.id);
       } else if (list.length > 0) {
         setActiveChildIdState(list[0].id);
-        localStorage.setItem('babycare_active_child_id', list[0].id);
+        localStore.setActiveChildId(list[0].id);
       }
-    } catch (e) {
-      console.error('Failed to load children:', e);
     } finally {
       setIsLoading(false);
     }
@@ -63,24 +70,25 @@ export const ChildProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setActiveChildId = (id: string) => {
     setActiveChildIdState(id);
+    localStore.setActiveChildId(id);
     localStorage.setItem('babycare_active_child_id', id);
   };
 
   const refreshChildren = async () => {
-    try {
-      const list = await api.getChildren();
-      setChildrenList(list);
-      if (activeChildId && !list.some((c) => c.id === activeChildId) && list.length > 0) {
-        setActiveChildId(list[0].id);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    await loadChildren();
   };
 
   const createChild = async (data: any): Promise<Child> => {
-    const created = await api.createChild(data);
-    await refreshChildren();
+    let created = localStore.upsertChild(data);
+    if (user) {
+      try {
+        const remote = await api.createChild(data);
+        created = localStore.upsertChild(remote);
+      } catch {
+        // Keep local child if server create fails
+      }
+    }
+    setChildrenList(localStore.getChildren());
     setActiveChildId(created.id);
     return created;
   };

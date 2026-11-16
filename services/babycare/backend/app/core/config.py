@@ -23,7 +23,12 @@ class Settings(BaseSettings):
     HD2LAB_HEADER_USER_EMAIL: str = "X-User-Email"
     
     # AI Gateway
-    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "mock")  # "gemini", "llama", "mock"
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "hd2lab_gateway")  # "hd2lab_gateway", "gemini", "llama", "mock"
+    AI_GATEWAY_SOCKET: str = os.getenv("AI_GATEWAY_SOCKET", "/run/hd2lab-ai-gateway/api.sock")
+    AI_GATEWAY_ROUTE: str = os.getenv("AI_GATEWAY_ROUTE", "babycare")
+    AI_GATEWAY_TOKEN: str = os.getenv("AI_GATEWAY_TOKEN", os.getenv("GATEWAY_BABYCARE_TOKEN", ""))
+    AI_GATEWAY_MAX_CONTEXT_TOKENS: int = int(os.getenv("AI_GATEWAY_MAX_CONTEXT_TOKENS", "4096"))
+    AI_GATEWAY_MAX_OUTPUT_TOKENS: int = int(os.getenv("AI_GATEWAY_MAX_OUTPUT_TOKENS", "768"))
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     LOCAL_LLAMA_URL: str = os.getenv("LOCAL_LLAMA_URL", "http://127.0.0.1:8080/v1")
     
