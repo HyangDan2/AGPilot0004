@@ -15,7 +15,15 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
       {/* Brand & Mark */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="hd2-skew-mark" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 64 64"
+            className="w-8 h-8 shrink-0"
+            aria-hidden="true"
+          >
+            <rect width="64" height="64" rx="12" fill="#FAFAFD" stroke="#E8E4F2" strokeWidth="2" />
+            <path d="M15 20L35 10V43L15 53ZM29 24L49 14V47L29 57Z" fill="none" stroke="#8B6CE8" strokeWidth="4" />
+          </svg>
           <span className="text-xl font-extrabold tracking-tight text-[#1D192B]">
             HD²LAB <span className="text-[#8B6CE8] font-bold">BabyCare</span>
           </span>

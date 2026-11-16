@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <defs>
-    <linearGradient id="hd2-lav" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8B6CE8"/>
-      <stop offset="100%" stop-color="#6B4CD6"/>
-    </linearGradient>
-  </defs>
-  <rect width="48" height="48" rx="12" fill="url(#hd2-lav)"/>
-  <!-- HD2Lab Skew Geometry -->
-  <g transform="translate(14, 13) skewY(-23)">
-    <rect x="0" y="0" width="16" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.8" rx="2"/>
-    <rect x="4" y="4" width="14" height="18" fill="none" stroke="#DDD2FB" stroke-width="2" rx="2"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#FAFAFD" stroke="#E8E4F2" stroke-width="2"/><path d="M15 20L35 10V43L15 53ZM29 24L49 14V47L29 57Z" fill="none" stroke="#8B6CE8" stroke-width="4"/></svg>
