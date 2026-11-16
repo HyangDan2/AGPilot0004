@@ -47,11 +47,10 @@ RELEVANCE_KEYWORDS = (
 )
 
 
-def sync_live_health_rules(data_dir: Path) -> None:
+def sync_live_health_rules(target_path: Path) -> None:
     """Atomically updates health_rules_live.json with schema validation."""
-    data_dir.mkdir(parents=True, exist_ok=True)
-    target = data_dir / "health_rules_live.json"
-    tmp = data_dir / "health_rules_live.json.tmp"
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target_path.with_suffix(".json.tmp")
 
     for r in VACCINATION_RULES + CHECKUP_RULES:
         if not all(k in r for k in ("code", "name", "target_age_months_min", "target_age_months_max")):
@@ -65,8 +64,8 @@ def sync_live_health_rules(data_dir: Path) -> None:
         "checkups": CHECKUP_RULES,
     }
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(tmp, target)
-    print(f"✅ Synced live health rules -> {target}")
+    os.replace(tmp, target_path)
+    print(f"✅ Synced live health rules -> {target_path}")
 
 
 async def summarize_article(title: str, source_name: str, link: str) -> str:
@@ -202,8 +201,10 @@ async def sync_rss_articles(max_new_per_run: int = 3) -> int:
 
 
 def main():
-    data_dir = BACKEND_DIR / "data"
-    sync_live_health_rules(data_dir)
+    live_json_path = Path(
+        os.getenv("HEALTH_RULES_LIVE_JSON", str(BACKEND_DIR / "data" / "health_rules_live.json"))
+    )
+    sync_live_health_rules(live_json_path)
     asyncio.run(sync_rss_articles())
 
 
