@@ -251,3 +251,15 @@ class AuditLog(Base):
     resource_id = Column(String(64), nullable=True)
     details = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EmailOtpCode(Base):
+    __tablename__ = "email_otp_codes"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    email = Column(String(255), nullable=False, index=True)
+    code_hash = Column(String(64), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)
+    consumed = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

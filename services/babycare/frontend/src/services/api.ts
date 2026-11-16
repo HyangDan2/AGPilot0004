@@ -55,6 +55,17 @@ export const api = {
       body: JSON.stringify({ email, name, role }),
     }),
   getMe: () => request<any>('/auth/me'),
+  getOtpStatus: () => request<{ mail_ready: boolean; state: string; provider: string }>('/auth/otp/status'),
+  requestEmailOtp: (email: string) =>
+    request<{ status: string; email: string; message: string }>('/auth/otp/request', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  verifyEmailOtp: (email: string, code: string, name?: string) =>
+    request<{ access_token: string; token_type: string; user: any }>('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, name }),
+    }),
   getGoogleAuthStatus: () => request<{ configured: boolean; login_url: string }>('/auth/google/status'),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
 

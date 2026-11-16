@@ -1,16 +1,60 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useChild } from '../../context/ChildContext';
-import { ChevronDown, Plus, Baby, User as UserIcon, LogOut, Lock } from 'lucide-react';
+import { api } from '../../services/api';
+import { ChevronDown, Plus, Baby, User as UserIcon, LogOut, Lock, Mail } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
 export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChild }) => {
-  const { user, loginWithGoogle, logout } = useAuth();
+  const { user, isOtpModalOpen, openOtpLogin, closeOtpLogin, completeOtpLogin, logout } = useAuth();
   const { childrenList, activeChild, setActiveChildId } = useChild();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  // Email OTP Modal state
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpName, setOtpName] = useState('');
+  const [otpStep, setOtpStep] = useState<'email' | 'code'>('email');
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpMsg, setOtpMsg] = useState<string | null>(null);
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpEmail.trim()) return;
+    setOtpBusy(true);
+    setOtpMsg(null);
+    try {
+      const res = await api.requestEmailOtp(otpEmail.trim());
+      setOtpStep('code');
+      setOtpMsg(res.message);
+    } catch (err: any) {
+      setOtpMsg(err.message || '인증 코드 발송 실패');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpEmail.trim() || otpCode.trim().length !== 6) return;
+    setOtpBusy(true);
+    setOtpMsg(null);
+    try {
+      const res = await api.verifyEmailOtp(otpEmail.trim(), otpCode.trim(), otpName.trim() || undefined);
+      completeOtpLogin(res.access_token, res.user);
+      setOtpStep('email');
+      setOtpCode('');
+      setOtpMsg(null);
+    } catch (err: any) {
+      setOtpMsg(err.message || '인증 코드 확인 실패');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
   return (
+    <>
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[#E8E4F2] bg-[#FAFAFD]/95 px-4 md:px-8 backdrop-blur-md">
       {/* Brand & Mark */}
       <div className="flex items-center gap-3">
@@ -108,11 +152,11 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
             </div>
             <button
               type="button"
-              onClick={loginWithGoogle}
+              onClick={openOtpLogin}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-3 py-1.5 text-xs font-bold shadow-sm transition-colors"
             >
-              <UserIcon className="w-3.5 h-3.5" />
-              <span>Google 로그인</span>
+              <Mail className="w-3.5 h-3.5" />
+              <span>이메일 OTP 로그인</span>
             </button>
           </div>
         ) : (
@@ -147,5 +191,81 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
         )}
       </div>
     </header>
+
+    <Modal isOpen={isOtpModalOpen} onClose={closeOtpLogin} title="이메일 6자리 OTP 로그인">
+      {otpStep === 'email' ? (
+        <form onSubmit={handleRequestOtp} className="space-y-4">
+          <p className="text-xs text-[#68627A] leading-relaxed">
+            HD²LAB 메일 발송 서버를 통해 6자리 일회용 인증 번호를 보내드립니다. 별도 비밀번호 없이 가족 공유 기능을 사용할 수 있습니다.
+          </p>
+          <div>
+            <label className="block text-xs font-bold text-[#1D192B] mb-1">이메일 주소</label>
+            <input
+              type="email"
+              required
+              placeholder="name@example.com"
+              value={otpEmail}
+              onChange={(e) => setOtpEmail(e.target.value)}
+              className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-sm focus:border-[#8B6CE8] focus:outline-none"
+            />
+          </div>
+          {otpMsg && <p className="text-xs font-semibold text-rose-600">{otpMsg}</p>}
+          <button
+            type="submit"
+            disabled={otpBusy}
+            className="w-full rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] disabled:opacity-50 text-white py-2.5 text-sm font-bold transition-colors"
+          >
+            {otpBusy ? '인증 코드 발송 중...' : '6자리 인증 코드 받기'}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          {otpMsg && <p className="text-xs font-semibold text-[#6B4CD6]">{otpMsg}</p>}
+          <div>
+            <label className="block text-xs font-bold text-[#1D192B] mb-1">6자리 인증 코드</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              required
+              placeholder="123456"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-center font-mono text-lg tracking-[0.3em] focus:border-[#8B6CE8] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-[#1D192B] mb-1">표시 이름 (선택)</label>
+            <input
+              type="text"
+              placeholder="예: 태휘 아빠"
+              value={otpName}
+              onChange={(e) => setOtpName(e.target.value)}
+              className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-sm focus:border-[#8B6CE8] focus:outline-none"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOtpStep('email');
+                setOtpMsg(null);
+              }}
+              className="flex-1 rounded-xl bg-[#F4F1FC] text-[#6B4CD6] py-2.5 text-xs font-bold"
+            >
+              이메일 변경
+            </button>
+            <button
+              type="submit"
+              disabled={otpBusy}
+              className="flex-[2] rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] disabled:opacity-50 text-white py-2.5 text-sm font-bold"
+            >
+              {otpBusy ? '확인 중...' : '인증 완료 및 로그인'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+    </>
   );
 };

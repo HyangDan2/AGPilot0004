@@ -61,3 +61,36 @@ def test_google_oauth_status_endpoint(client):
     data = res.json()
     assert "configured" in data
     assert data["login_url"] == "/api/babycare/v1/auth/google/login"
+
+
+def test_email_otp_login_flow(client, monkeypatch):
+    sent_messages = []
+
+    def fake_send(self, to_email, subject, body_text, body_html):
+        sent_messages.append((to_email, body_text))
+        return True, "ACCEPTED"
+
+    monkeypatch.setattr("app.services.mailer_client.HD2MailClient.send_message", fake_send)
+
+    req_res = client.post(
+        "/api/babycare/v1/auth/otp/request",
+        json={"email": "crew@hd2lab.org"},
+    )
+    assert req_res.status_code == 200
+    assert req_res.json()["status"] == "sent"
+    assert len(sent_messages) == 1
+
+    import re
+    code_match = re.search(r"인증 코드: (\d{6})", sent_messages[0][1])
+    assert code_match is not None
+    code = code_match.group(1)
+
+    verify_res = client.post(
+        "/api/babycare/v1/auth/otp/verify",
+        json={"email": "crew@hd2lab.org", "code": code, "name": "태휘 엄마"},
+    )
+    assert verify_res.status_code == 200
+    vdata = verify_res.json()
+    assert vdata["user"]["email"] == "crew@hd2lab.org"
+    assert vdata["user"]["name"] == "태휘 엄마"
+    assert vdata["access_token"]

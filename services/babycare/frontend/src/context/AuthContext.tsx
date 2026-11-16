@@ -5,6 +5,10 @@ import { api } from '../services/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isOtpModalOpen: boolean;
+  openOtpLogin: () => void;
+  closeOtpLogin: () => void;
+  completeOtpLogin: (token: string, userData: User) => void;
   loginWithGoogle: () => Promise<void>;
   login: (email: string, name?: string, role?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -15,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -64,8 +69,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const openOtpLogin = () => setIsOtpModalOpen(true);
+  const closeOtpLogin = () => setIsOtpModalOpen(false);
+  const completeOtpLogin = (token: string, userData: User) => {
+    localStorage.setItem('babycare_access_token', token);
+    setUser(userData);
+    setIsOtpModalOpen(false);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginWithGoogle, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isOtpModalOpen,
+        openOtpLogin,
+        closeOtpLogin,
+        completeOtpLogin,
+        loginWithGoogle,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

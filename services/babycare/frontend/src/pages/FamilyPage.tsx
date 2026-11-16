@@ -6,7 +6,7 @@ import { Users, UserPlus, Trash2, Camera, Shield, Download, AlertTriangle, KeyRo
 import { Modal } from '../components/common/Modal';
 
 export const FamilyPage: React.FC = () => {
-  const { user, loginWithGoogle } = useAuth();
+  const { user, openOtpLogin } = useAuth();
   const { activeChild, refreshChildren, createChild } = useChild();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -352,15 +352,15 @@ export const FamilyPage: React.FC = () => {
             <div className="space-y-1">
               <p className="font-bold text-sm text-[#1D192B]">가족과 같은 아이 기록을 함께 보시겠어요?</p>
               <p className="text-xs text-[#68627A]">
-                일반 가족 구성원(Crew)은 <strong>Google 계정 로그인</strong> 후 6자리 초대 코드와 주 양육자의 최종 승인을 거쳐 안전하게 아이 데이터를 공유할 수 있습니다.
+                일반 가족 구성원(Crew)은 <strong>이메일 6자리 OTP 로그인</strong> 후 6자리 초대 코드와 주 양육자의 최종 승인을 거쳐 안전하게 아이 데이터를 공유할 수 있습니다.
               </p>
             </div>
             <button
               type="button"
-              onClick={loginWithGoogle}
+              onClick={openOtpLogin}
               className="shrink-0 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-colors"
             >
-              Google 계정으로 로그인
+              이메일 OTP 로그인
             </button>
           </div>
         ) : activeChild.id.startsWith('local-') ? (

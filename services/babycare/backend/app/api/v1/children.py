@@ -380,6 +380,20 @@ def request_join_with_code(
     db.add(pending_member)
     db.commit()
 
+    # Best-effort email notification to Owner via hd2lab-mail
+    owner_user = db.query(User).filter(User.id == child.created_by).first()
+    if owner_user and owner_user.email:
+        try:
+            from app.services.mailer_client import HD2MailClient
+            HD2MailClient().send_message(
+                owner_user.email,
+                f"[HD²LAB BabyCare] '{child.name}' 공동 양육 승인 요청",
+                f"{current_user.name} ({current_user.email})님이 '{child.name}' 공동 양육 참여를 요청했습니다.\nBabyCare 가족 관리 탭에서 확인 후 승인해 주세요.",
+                f"<p><strong>{current_user.name}</strong> ({current_user.email})님이 <strong>'{child.name}'</strong> 공동 양육 참여를 요청했습니다.</p><p>BabyCare [아이 프로필 · 가족] 화면에서 요청자 정보를 확인 후 <strong>[확인 후 승인]</strong>을 눌러주세요.</p>",
+            )
+        except Exception:
+            pass
+
     return {
         "status": "pending",
         "child_id": child.id,
