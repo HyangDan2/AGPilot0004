@@ -135,9 +135,16 @@ export const KnowledgePage: React.FC = () => {
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                <span className="text-slate-500 text-[11px] truncate min-w-0 flex-1">
-                  출처: {art.source?.organization || '질병관리청'}
-                </span>
+                <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] text-slate-500">
+                  <span className="truncate">
+                    출처: {art.source?.organization || '질병관리청'}
+                  </span>
+                  {art.created_at && (
+                    <span className="shrink-0 text-slate-400">
+                      · {new Date(art.created_at).toLocaleDateString('ko-KR')}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[#6B4CD6] font-bold flex items-center gap-0.5 shrink-0">
                   전문 보기
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -197,6 +204,12 @@ export const KnowledgePage: React.FC = () => {
               </p>
               <p>기관명: {activeArticle.source?.organization}</p>
               <p>라이선스: {activeArticle.source?.license}</p>
+              {activeArticle.created_at && (
+                <p>
+                  레퍼런스 기준일: {new Date(activeArticle.created_at).toLocaleDateString('ko-KR')}
+                  {activeArticle.source?.license === 'Public RSS' && ' (RSS 수집 소식 · 최대 1년 보관)'}
+                </p>
+              )}
               {activeArticle.source?.url && (
                 <a
                   href={activeArticle.source.url}

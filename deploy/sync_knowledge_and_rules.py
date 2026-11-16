@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 import json
 import os
 from pathlib import Path
@@ -90,6 +91,41 @@ async def summarize_article(title: str, source_name: str, link: str) -> str:
     )
 
 
+def _parse_pub_date(pub_date_raw: str) -> datetime:
+    """Parses RSS pubDate into a naive UTC datetime for SQLite storage."""
+    if pub_date_raw:
+        try:
+            dt = parsedate_to_datetime(pub_date_raw.strip())
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt
+        except Exception:
+            pass
+    return datetime.utcnow()
+
+
+def prune_old_rss_articles(db, retention_days: int = 365) -> int:
+    """Removes auto-synced RSS articles older than 1 year (365 days), keeping core seeded guides."""
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    rss_source_ids = [
+        row[0]
+        for row in db.query(ContentSource.id).filter(ContentSource.license == "Public RSS").all()
+    ]
+    if not rss_source_ids:
+        return 0
+    deleted = (
+        db.query(ContentArticle)
+        .filter(
+            ContentArticle.source_id.in_(rss_source_ids),
+            ContentArticle.created_at < cutoff,
+        )
+        .delete(synchronize_session=False)
+    )
+    if deleted:
+        db.commit()
+    return deleted
+
+
 async def sync_rss_articles(max_new_per_run: int = 3) -> int:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -135,6 +171,7 @@ async def sync_rss_articles(max_new_per_run: int = 3) -> int:
                     if exists:
                         continue
 
+                    pub_dt_utc = _parse_pub_date(item.findtext("pubDate") or "")
                     body = await summarize_article(clean_title, feed_name, link)
                     article = ContentArticle(
                         title=clean_title,
@@ -146,11 +183,17 @@ async def sync_rss_articles(max_new_per_run: int = 3) -> int:
                         source_id=source.id,
                         is_approved=True,
                         review_status="reviewed",
+                        created_at=pub_dt_utc,
+                        updated_at=pub_dt_utc,
                     )
                     db.add(article)
                     db.commit()
                     added += 1
-                    print(f"📰 Added article: {clean_title}")
+                    print(f"📰 Added article ({pub_dt_utc.strftime('%Y-%m-%d')}): {clean_title}")
+
+        pruned = prune_old_rss_articles(db, retention_days=365)
+        if pruned:
+            print(f"🧹 Pruned {pruned} RSS article(s) older than 365 days.")
     finally:
         db.close()
 
