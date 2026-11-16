@@ -209,6 +209,20 @@ export const api = {
   getConversations: () => request<any[]>('/ai/conversations'),
 
   // Analytics & Stat Importer
+  analyzeStatZipStateless: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/analytics/analyze-stateless`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new ApiError(res.status, err?.detail || '통계 파일 무상태 분석 실패');
+    }
+    return res.json();
+  },
   uploadStatZip: async (file: File, childId?: string, autoCreateChild: boolean = true) => {
     const formData = new FormData();
     formData.append('file', file);

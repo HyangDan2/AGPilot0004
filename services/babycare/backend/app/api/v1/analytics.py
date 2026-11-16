@@ -65,6 +65,71 @@ def generate_pediatric_insight(child_name: str, summary: dict, est_age_months: f
 
     return "\n\n".join(insights)
 
+MAX_STAT_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _parse_stat_file(raw_content: bytes, filename: str):
+    """Parses .zip or .csv stat file in memory without persisting to disk or DB."""
+    if len(raw_content) > MAX_STAT_FILE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="파일 크기는 최대 10MB까지 지원됩니다."
+        )
+
+    lower_name = (filename or "").lower()
+    if lower_name.endswith(".zip"):
+        return process_stat_zip(raw_content)
+    if lower_name.endswith(".csv"):
+        csv_str = detect_encoding_and_read(raw_content)
+        daily_rows, summary = parse_csv_stream(csv_str)
+        child_name = "태휘" if "태휘" in (filename or "") else "아이"
+        return child_name, daily_rows, summary
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="지원되지 않는 파일 형식입니다. .zip 또는 .csv 파일을 업로드해 주세요."
+    )
+
+
+def _estimate_age_months(birth_date_str: Optional[str], default_months: float = 5.0) -> float:
+    if not birth_date_str:
+        return default_months
+    try:
+        days = (date.today() - date.fromisoformat(birth_date_str)).days
+        return max(0.0, days / 30.4375)
+    except ValueError:
+        return default_months
+
+
+@router.post("/analyze-stateless")
+async def analyze_stat_zip_stateless(
+    file: UploadFile = File(...),
+):
+    """
+    Stateless analysis endpoint for public/guest users (no login, no DB persistence).
+    Parses the uploaded ZIP/CSV in RAM, computes metrics and AI pediatric insights,
+    and returns the payload directly to the client's local storage.
+    """
+    raw_content = await file.read()
+    child_name, daily_rows, summary = _parse_stat_file(raw_content, file.filename or "")
+
+    est_birth = summary.get("estimated_birth_date")
+    est_age_m = _estimate_age_months(est_birth)
+    ai_report = generate_pediatric_insight(child_name, summary, est_age_m)
+
+    return {
+        "status": "success",
+        "mode": "stateless",
+        "child_id": None,
+        "child_name": child_name,
+        "estimated_birth_date": est_birth,
+        "summary": summary,
+        "daily_rows": daily_rows,
+        "ai_report": ai_report,
+        "privacy_notice": "본 분석 데이터는 서버 DB에 저장되지 않고 브라우저 로컬에만 보관됩니다."
+    }
+
+
 @router.post("/upload-zip")
 async def upload_stat_zip(
     file: UploadFile = File(...),
@@ -78,19 +143,7 @@ async def upload_stat_zip(
     auto-links to child or creates new profile, and returns comprehensive analytics.
     """
     raw_content = await file.read()
-    filename = file.filename.lower()
-
-    if filename.endswith(".zip"):
-        child_name, daily_rows, summary = process_stat_zip(raw_content)
-    elif filename.endswith(".csv"):
-        csv_str = detect_encoding_and_read(raw_content)
-        daily_rows, summary = parse_csv_stream(csv_str)
-        child_name = "태휘" if "태휘" in file.filename else "아이"
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="지원되지 않는 파일 형식입니다. .zip 또는 .csv 파일을 업로드해 주세요."
-        )
+    child_name, daily_rows, summary = _parse_stat_file(raw_content, file.filename or "")
 
     # Resolve Child Profile
     child = None

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useChild } from '../context/ChildContext';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import {
   Upload,
@@ -12,7 +13,10 @@ import {
   ShieldCheck,
   CheckCircle2,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Trash2,
+  CloudUpload
 } from 'lucide-react';
 import {
   BarChart,
@@ -28,28 +32,61 @@ import {
   ReferenceArea
 } from 'recharts';
 
+const LOCAL_STORAGE_KEY = 'babycare_local_analytics_v1';
+
 export const AnalyticsPage: React.FC = () => {
+  const { user } = useAuth();
   const { activeChild, refreshChildren, setActiveChildId } = useChild();
 
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [syncToAccount, setSyncToAccount] = useState(false);
+
+  // Restore last local-first analysis on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        setAnalysisResult(JSON.parse(saved));
+      }
+    } catch {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+  }, []);
 
   const handleFileUpload = async (file: File) => {
     setSelectedFile(file);
     setIsLoading(true);
     try {
-      const res = await api.uploadStatZip(file, activeChild?.id, true);
+      let res: any;
+      if (user && syncToAccount) {
+        res = await api.uploadStatZip(file, activeChild?.id, true);
+        await refreshChildren();
+        if (res.child_id) {
+          setActiveChildId(res.child_id);
+        }
+      } else {
+        res = await api.analyzeStatZipStateless(file);
+      }
+
       setAnalysisResult(res);
-      await refreshChildren();
-      if (res.child_id) {
-        setActiveChildId(res.child_id);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(res));
+      } catch {
+        // Ignore quota exceeded on localStorage
       }
     } catch (err: any) {
       alert(err.message || '파일 분석 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClearLocalData = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setAnalysisResult(null);
+    setSelectedFile(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -62,15 +99,29 @@ export const AnalyticsPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">육아 통계 ZIP 분석 플랫폼</h1>
           <span className="rounded-full bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5">
-            Auto Parser & AI Insights
+            Local-First · 무계정 즉시 분석
           </span>
         </div>
         <p className="text-sm text-slate-500 mt-1">
-          베이비타임 등 육아 기록 앱에서 내보낸 통계 압축 파일(ZIP) 또는 CSV를 업로드하면 자동으로 아이 프로필을 인식하고 시각화 분석 및 소아과 기준 평가를 제공합니다.
+          계정 발급이나 로그인 없이도 베이비타임 등 육아 기록 앱의 통계 압축 파일(ZIP/CSV)을 업로드하면 즉시 시각화 분석 및 소아과 기준 AI 평가를 제공합니다.
         </p>
+      </div>
+
+      {/* Zero-Knowledge Privacy Banner */}
+      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+          <Lock className="w-4 h-4" />
+        </div>
+        <div className="text-xs text-emerald-900 space-y-1">
+          <p className="font-bold text-sm">개인정보 안심 모드 (Zero-Persistence)</p>
+          <p className="text-emerald-800 leading-relaxed">
+            업로드된 통계 데이터는 HD²LAB 서버 DB에 저장되지 않고, 오직 고객님의 <strong>브라우저 로컬 저장소에만 안전하게 보관</strong>됩니다.
+            새로고침 후에도 기록이 유지되며 언제든 즉시 삭제할 수 있습니다.
+          </p>
+        </div>
       </div>
 
       {/* Upload Zone */}
@@ -89,17 +140,32 @@ export const AnalyticsPage: React.FC = () => {
           지원 파일: stat_아이이름_YYYYMM.zip, other_stat_*.csv, excel_stat_*.csv (CP949/UTF-8 자동 지원)
         </p>
 
-        <label className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 text-xs font-bold shadow-sm cursor-pointer transition-colors">
-          <Upload className="w-4 h-4" />
-          <span>통계 파일 업로드</span>
-          <input
-            type="file"
-            accept=".zip,.csv"
-            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-            disabled={isLoading}
-            className="hidden"
-          />
-        </label>
+        <div className="flex flex-col items-center gap-3">
+          <label className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 text-xs font-bold shadow-sm cursor-pointer transition-colors">
+            <Upload className="w-4 h-4" />
+            <span>통계 파일 업로드</span>
+            <input
+              type="file"
+              accept=".zip,.csv"
+              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+              disabled={isLoading}
+              className="hidden"
+            />
+          </label>
+
+          {user && (
+            <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={syncToAccount}
+                onChange={(e) => setSyncToAccount(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <CloudUpload className="w-3.5 h-3.5 text-blue-600" />
+              <span>내 계정의 서버 DB에도 영구 동기화 (멀티 기기 조회용)</span>
+            </label>
+          )}
+        </div>
 
         {selectedFile && (
           <p className="text-xs text-blue-700 font-semibold mt-3">
@@ -126,15 +192,35 @@ export const AnalyticsPage: React.FC = () => {
                   자동 인식된 아이 프로필
                 </span>
                 <h2 className="text-2xl font-black mt-1">
-                  {analysisResult.child_name} (출생 역산: {analysisResult.estimated_birth_date})
+                  {analysisResult.child_name} (출생 역산: {analysisResult.estimated_birth_date || '미상'})
                 </h2>
                 <p className="text-xs text-blue-100 mt-1">
                   데이터 범위: 총 {analysisResult.summary.total_days_in_file}일 중 실제 기록일{' '}
                   <span className="font-bold text-amber-300">{analysisResult.summary.active_days_count}일</span> 활성 집계
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/20 backdrop-blur-md px-4 py-2.5 text-xs font-semibold">
-                ✓ 데이터베이스 자동 동기화 완료
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="rounded-2xl bg-white/20 backdrop-blur-md px-4 py-2 text-xs font-semibold flex items-center gap-1.5">
+                  {analysisResult.mode === 'stateless' ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>브라우저 로컬 보관 (서버 미저장)</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>데이터베이스 자동 동기화 완료</span>
+                    </>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearLocalData}
+                  className="rounded-2xl bg-rose-500/80 hover:bg-rose-600 text-white px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>데이터 지우기</span>
+                </button>
               </div>
             </div>
           </div>

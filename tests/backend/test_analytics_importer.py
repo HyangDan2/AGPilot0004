@@ -37,3 +37,24 @@ def test_api_upload_zip(client, owner_headers):
     assert data["summary"]["active_days_count"] == 15
     assert "태휘" in data["ai_report"]
     assert "우수" in data["ai_report"] or "수유량" in data["ai_report"]
+
+
+def test_api_analyze_stateless_no_auth(client):
+    with open(SAMPLE_ZIP_PATH, "rb") as f:
+        file_bytes = f.read()
+
+    # No Authorization header at all!
+    response = client.post(
+        "/api/babycare/v1/analytics/analyze-stateless",
+        files={"file": ("stat_태휘_202611.zip", file_bytes, "application/zip")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["mode"] == "stateless"
+    assert data["child_id"] is None
+    assert data["child_name"] == "태휘"
+    assert data["estimated_birth_date"] == "2026-06-09"
+    assert data["summary"]["active_days_count"] == 15
+    assert "태휘" in data["ai_report"]
+    assert "저장되지 않고" in data["privacy_notice"]
