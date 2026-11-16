@@ -29,6 +29,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers,
   });
 
@@ -54,6 +55,7 @@ export const api = {
       body: JSON.stringify({ email, name, role }),
     }),
   getMe: () => request<any>('/auth/me'),
+  getGoogleAuthStatus: () => request<{ configured: boolean; login_url: string }>('/auth/google/status'),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
 
   // Children
@@ -96,6 +98,27 @@ export const api = {
   removeMember: (childId: string, memberId: string) =>
     request<void>(`/children/${childId}/members/${memberId}`, {
       method: 'DELETE',
+    }),
+  createInviteCode: (childId: string, role: string = 'caregiver') =>
+    request<{ child_id: string; child_name: string; code: string; role: string; expires_at: string }>(
+      `/children/${childId}/invite-code`,
+      { method: 'POST', body: JSON.stringify({ role }) }
+    ),
+  requestJoinWithCode: (code: string) =>
+    request<{ status: string; child_id: string; child_name: string; message: string }>(
+      '/children/join-request',
+      { method: 'POST', body: JSON.stringify({ code }) }
+    ),
+  getMyPendingJoinRequests: () => request<any[]>('/children/join-requests/mine'),
+  getPendingMembers: (childId: string) => request<any[]>(`/children/${childId}/members/pending`),
+  approveMember: (childId: string, memberId: string, role?: string) =>
+    request<any>(`/children/${childId}/members/${memberId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(role ? { role } : {}),
+    }),
+  rejectMember: (childId: string, memberId: string) =>
+    request<void>(`/children/${childId}/members/${memberId}/reject`, {
+      method: 'POST',
     }),
 
   // Growth

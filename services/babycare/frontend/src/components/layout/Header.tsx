@@ -5,7 +5,7 @@ import { ChevronDown, Plus, Baby, User as UserIcon, LogOut, Lock } from 'lucide-
 import { Modal } from '../common/Modal';
 
 export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChild }) => {
-  const { user, logout } = useAuth();
+  const { user, loginWithGoogle, logout } = useAuth();
   const { childrenList, activeChild, setActiveChildId } = useChild();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -96,14 +96,24 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
           )}
         </div>
 
-        {/* Local-First Status Pill (or Account Menu if authenticated) */}
+        {/* Local-First Status + Google Crew Login (or Account Menu if authenticated) */}
         {!user ? (
-          <div
-            title="모든 데이터는 브라우저 로컬 스토리지에 안전하게 보관됩니다"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#F4F1FC] px-3 py-1.5 text-xs font-semibold text-[#6B4CD6] border border-[#E8E4F2]"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>로컬 보관 모드</span>
+          <div className="flex items-center gap-2">
+            <div
+              title="모든 데이터는 브라우저 로컬 스토리지에 안전하게 보관됩니다"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-xl bg-[#F4F1FC] px-3 py-1.5 text-xs font-semibold text-[#6B4CD6] border border-[#E8E4F2]"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>로컬 보관</span>
+            </div>
+            <button
+              type="button"
+              onClick={loginWithGoogle}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-3 py-1.5 text-xs font-bold shadow-sm transition-colors"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>Google 로그인</span>
+            </button>
           </div>
         ) : (
           <div className="relative">

@@ -53,6 +53,7 @@ class ChildMember(Base):
     child_id = Column(String(36), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     role = Column(String(32), default="owner", nullable=False)  # "owner", "caregiver", "viewer"
+    status = Column(String(20), default="active", nullable=False)  # "active", "pending"
     invited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     child = relationship("Child", back_populates="members")
@@ -61,6 +62,19 @@ class ChildMember(Base):
     __table_args__ = (
         Index("idx_child_user_unique", "child_id", "user_id", unique=True),
     )
+
+
+class ChildInviteCode(Base):
+    __tablename__ = "child_invite_codes"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    child_id = Column(String(36), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    code = Column(String(6), nullable=False, index=True)
+    role = Column(String(32), default="caregiver", nullable=False)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class GrowthRecord(Base):

@@ -41,6 +41,12 @@ def verify_child_access(
             detail="해당 아이 프로필에 대한 접근 권한이 없습니다."
         )
 
+    if getattr(membership, "status", "active") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="주 양육자(Owner)의 최종 승인을 기다리는 중입니다."
+        )
+
     user_level = ROLE_HIERARCHY.get(membership.role, 0)
     required_level = ROLE_HIERARCHY.get(min_role, 1)
 

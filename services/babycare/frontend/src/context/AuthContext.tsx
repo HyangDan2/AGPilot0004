@@ -5,6 +5,7 @@ import { api } from '../services/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  loginWithGoogle: () => Promise<void>;
   login: (email: string, name?: string, role?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -21,11 +22,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('babycare_access_token');
-      if (!token) {
-        setUser(null);
-        return;
-      }
       const me = await api.getMe();
       setUser(me);
     } catch {
@@ -33,6 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      const st = await api.getGoogleAuthStatus();
+      if (!st.configured) {
+        alert('현재 서버에 Google OAuth 설정(GOOGLE_CLIENT_ID)이 준비 중입니다. 설정 완료 후 Google 계정으로 로그인할 수 있습니다.');
+        return;
+      }
+      window.location.href = st.login_url;
+    } catch {
+      alert('Google 로그인 연결 상태를 확인할 수 없습니다.');
     }
   };
 
@@ -56,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, loginWithGoogle, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

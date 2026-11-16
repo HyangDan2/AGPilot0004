@@ -1,23 +1,142 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useChild } from '../context/ChildContext';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Users, UserPlus, Trash2, Camera, Shield, Download, AlertTriangle } from 'lucide-react';
+import { Users, UserPlus, Trash2, Camera, Shield, Download, AlertTriangle, KeyRound, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 
 export const FamilyPage: React.FC = () => {
-  const { activeChild, refreshChildren } = useChild();
+  const { user, loginWithGoogle } = useAuth();
+  const { activeChild, refreshChildren, createChild } = useChild();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'caregiver' | 'viewer'>('caregiver');
   const [isUploading, setIsUploading] = useState(false);
 
+  // 6-digit invite code & 2-step approval states
+  const [generatedCode, setGeneratedCode] = useState<{ code: string; role: string; expires_at: string } | null>(null);
+  const [pendingMembers, setPendingMembers] = useState<any[]>([]);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [myPendingRequests, setMyPendingRequests] = useState<any[]>([]);
+  const [joinStatusMsg, setJoinStatusMsg] = useState<string | null>(null);
+
   // Edit profile state
   const [name, setName] = useState(activeChild?.name || '');
   const [birthDate, setBirthDate] = useState(activeChild?.birth_date || '');
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!activeChild) return null;
+  useEffect(() => {
+    if (user && activeChild && !activeChild.id.startsWith('local-')) {
+      if (activeChild.role === 'owner') {
+        api.getPendingMembers(activeChild.id).then(setPendingMembers).catch(() => setPendingMembers([]));
+      }
+      api.getMyPendingJoinRequests().then(setMyPendingRequests).catch(() => setMyPendingRequests([]));
+    }
+  }, [user, activeChild?.id]);
+
+  const handleGenerateCode = async () => {
+    if (!activeChild) return;
+    try {
+      const res = await api.createInviteCode(activeChild.id, inviteRole);
+      setGeneratedCode({ code: res.code, role: res.role, expires_at: res.expires_at });
+    } catch (err: any) {
+      alert(err.message || '초대 코드 발급 실패');
+    }
+  };
+
+  const handleJoinWithCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = joinCodeInput.replace(/\D/g, '').slice(0, 6);
+    if (clean.length !== 6) {
+      alert('6자리 숫자 초대 코드를 입력해 주세요.');
+      return;
+    }
+    try {
+      const res = await api.requestJoinWithCode(clean);
+      setJoinStatusMsg(res.message);
+      setJoinCodeInput('');
+      const mine = await api.getMyPendingJoinRequests().catch(() => []);
+      setMyPendingRequests(mine);
+      await refreshChildren();
+    } catch (err: any) {
+      alert(err.message || '초대 코드 요청 실패');
+    }
+  };
+
+  const handleApproveMember = async (memberId: string) => {
+    if (!activeChild) return;
+    try {
+      await api.approveMember(activeChild.id, memberId);
+      setPendingMembers((prev) => prev.filter((m) => m.id !== memberId));
+      await refreshChildren();
+    } catch (err: any) {
+      alert(err.message || '승인 처리 실패');
+    }
+  };
+
+  const handleRejectMember = async (memberId: string) => {
+    if (!activeChild) return;
+    try {
+      await api.rejectMember(activeChild.id, memberId);
+      setPendingMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (err: any) {
+      alert(err.message || '거절 처리 실패');
+    }
+  };
+
+  const handleSyncLocalChildToCloud = async () => {
+    if (!activeChild || !user) return;
+    try {
+      await createChild({
+        name: activeChild.name,
+        birth_date: activeChild.birth_date,
+        sex: activeChild.sex,
+        is_premature: activeChild.is_premature,
+        due_date: activeChild.due_date,
+        gestational_weeks: activeChild.gestational_weeks,
+      });
+      alert(`'${activeChild.name}' 프로필이 클라우드에 저장되었습니다. 이제 6자리 초대 코드를 발급할 수 있습니다.`);
+    } catch (err: any) {
+      alert(err.message || '클라우드 동기화 실패');
+    }
+  };
+
+  if (!activeChild) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto">
+        {user && (
+          <div className="rounded-3xl bg-white p-6 shadow-sm border border-[#E8E4F2] space-y-4">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-[#8B6CE8]" />
+              <h2 className="text-lg font-extrabold text-[#1D192B]">6자리 초대 코드로 가족 아이 연결하기</h2>
+            </div>
+            <form onSubmit={handleJoinWithCode} className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6자리 숫자 입력 (예: 482910)"
+                value={joinCodeInput}
+                onChange={(e) => setJoinCodeInput(e.target.value)}
+                className="flex-1 min-w-[200px] rounded-xl border border-[#E8E4F2] px-4 py-2.5 text-sm font-mono tracking-widest focus:border-[#8B6CE8] focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-5 py-2.5 text-sm font-bold"
+              >
+                참여 요청 보내기
+              </button>
+            </form>
+            {joinStatusMsg && <p className="text-xs font-semibold text-[#6B4CD6]">{joinStatusMsg}</p>}
+          </div>
+        )}
+        <div className="rounded-3xl bg-white p-8 text-center border border-[#E8E4F2]">
+          <p className="text-sm text-[#68627A]">상단 메뉴에서 새 아이를 등록하거나 6자리 초대 코드를 입력해 주세요.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,23 +318,171 @@ export const FamilyPage: React.FC = () => {
         )}
       </div>
 
-      {/* 2. Family Members Sharing */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      {/* 2. Family Members Sharing (Google Auth Crew + 6-digit Code + Owner Approval) */}
+      <div className="rounded-3xl bg-white p-6 shadow-sm border border-[#E8E4F2] space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-slate-900 text-base">공동 양육자 목록</h3>
+            <Users className="w-5 h-5 text-[#8B6CE8]" />
+            <h3 className="font-bold text-[#1D192B] text-base">공동 양육 · 가족 공유 (2단계 승인)</h3>
           </div>
-          {activeChild.role === 'owner' && (
-            <button
-              onClick={() => setIsInviteModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 px-3.5 py-2 text-xs font-bold transition-colors"
-            >
-              <UserPlus className="w-4 h-4" />
-              가족 초대
-            </button>
+          {user && !activeChild.id.startsWith('local-') && activeChild.role === 'owner' && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateCode}
+                className="flex items-center gap-1.5 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-3.5 py-2 text-xs font-bold transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                6자리 초대 코드 발급
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsInviteModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl bg-[#F4F1FC] text-[#6B4CD6] hover:bg-[#EAE4FA] px-3 py-2 text-xs font-bold transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                이메일 초대
+              </button>
+            </div>
           )}
         </div>
+
+        {!user ? (
+          <div className="rounded-2xl bg-[#F4F1FC] border border-[#E8E4F2] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="font-bold text-sm text-[#1D192B]">가족과 같은 아이 기록을 함께 보시겠어요?</p>
+              <p className="text-xs text-[#68627A]">
+                일반 가족 구성원(Crew)은 <strong>Google 계정 로그인</strong> 후 6자리 초대 코드와 주 양육자의 최종 승인을 거쳐 안전하게 아이 데이터를 공유할 수 있습니다.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loginWithGoogle}
+              className="shrink-0 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-colors"
+            >
+              Google 계정으로 로그인
+            </button>
+          </div>
+        ) : activeChild.id.startsWith('local-') ? (
+          <div className="rounded-2xl bg-[#F4F1FC] border border-[#E8E4F2] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="font-bold text-sm text-[#1D192B]">로컬 전용 아이 프로필입니다</p>
+              <p className="text-xs text-[#68627A]">
+                Google 계정으로 로그인되었습니다. 6자리 초대 코드를 발급해 가족과 공유하려면 먼저 이 아이 프로필을 클라우드에 저장해 주세요.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSyncLocalChildToCloud}
+              className="shrink-0 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-colors"
+            >
+              클라우드에 저장하고 공유하기
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Generated 6-digit code display */}
+            {generatedCode && (
+              <div className="rounded-2xl bg-[#F4F1FC] border border-[#DDD2FB] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-[#6B4CD6]">발급된 6자리 가족 초대 코드 (24시간 유효)</p>
+                  <p className="text-2xl font-black font-mono tracking-[0.25em] text-[#1D192B] mt-1">
+                    {generatedCode.code}
+                  </p>
+                  <p className="text-[11px] text-[#68627A] mt-1">
+                    가족이 이 코드를 입력하면 아래 승인 대기 목록에 나타나며, 회원님의 확인·승인 후 데이터가 공유됩니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(generatedCode.code);
+                    alert('초대 코드가 복사되었습니다.');
+                  }}
+                  className="shrink-0 rounded-xl bg-white border border-[#E8E4F2] px-3.5 py-2 text-xs font-bold text-[#6B4CD6] hover:bg-[#F1ECFE]"
+                >
+                  코드 복사
+                </button>
+              </div>
+            )}
+
+            {/* Owner: Pending approval queue */}
+            {activeChild.role === 'owner' && pendingMembers.length > 0 && (
+              <div className="rounded-2xl bg-amber-50/80 border border-amber-200 p-4 space-y-3">
+                <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  주 양육자 재확인 · 승인 대기 중인 요청 ({pendingMembers.length}건)
+                </p>
+                <div className="space-y-2">
+                  {pendingMembers.map((pm) => (
+                    <div
+                      key={pm.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white rounded-xl p-3 border border-amber-200/70"
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{pm.user_name || '요청자'}</p>
+                        <p className="text-xs text-slate-500">{pm.user_email} · 요청 권한: {pm.role}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveMember(pm.id)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          확인 후 승인
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectMember(pm.id)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 text-xs font-bold"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          거절
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Join another child using 6-digit code */}
+            <div className="rounded-2xl bg-[#FAFAFD] border border-[#E8E4F2] p-4 space-y-2">
+              <p className="text-xs font-bold text-[#1D192B] flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-[#8B6CE8]" />
+                다른 가족의 6자리 초대 코드 입력하기
+              </p>
+              <form onSubmit={handleJoinWithCode} className="flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="6자리 숫자 입력"
+                  value={joinCodeInput}
+                  onChange={(e) => setJoinCodeInput(e.target.value)}
+                  className="flex-1 min-w-[180px] rounded-xl border border-[#E8E4F2] bg-white px-3.5 py-2 text-xs font-mono tracking-widest focus:border-[#8B6CE8] focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] text-white px-4 py-2 text-xs font-bold"
+                >
+                  참여 요청
+                </button>
+              </form>
+              {joinStatusMsg && <p className="text-xs font-semibold text-[#6B4CD6]">{joinStatusMsg}</p>}
+              {myPendingRequests.length > 0 && (
+                <div className="pt-1 space-y-1">
+                  {myPendingRequests.map((req) => (
+                    <p key={req.member_id} className="text-[11px] text-amber-700 font-medium">
+                      • [{req.child_name}] 주 양육자의 확인 및 승인을 기다리는 중입니다.
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           {activeChild.members && activeChild.members.length > 0 ? (

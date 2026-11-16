@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
@@ -24,6 +25,13 @@ from app.services.calendar_service import seed_health_rules
 async def lifespan(app: FastAPI):
     # Ensure tables exist
     Base.metadata.create_all(bind=engine)
+
+    # Safe schema migration for existing SQLite DBs missing child_members.status
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(child_members)")).fetchall()]
+        if cols and "status" not in cols:
+            conn.execute(text("ALTER TABLE child_members ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'"))
+            conn.commit()
     
     # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

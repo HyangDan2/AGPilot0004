@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     AUTH_MODE: str = os.getenv("AUTH_MODE", "hybrid")  # "hybrid", "hd2lab_proxy", "local"
     HD2LAB_HEADER_USER_ID: str = "X-User-Id"
     HD2LAB_HEADER_USER_EMAIL: str = "X-User-Email"
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv(
+        "GOOGLE_REDIRECT_URI",
+        "https://hd2lab.duckdns.org/api/babycare/v1/auth/google/callback",
+    )
+    FRONTEND_BASE_URL: str = os.getenv("FRONTEND_BASE_URL", "/babycare/")
     
     # AI Gateway
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "hd2lab_gateway")  # "hd2lab_gateway", "gemini", "llama", "mock"
