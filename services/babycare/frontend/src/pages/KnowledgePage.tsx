@@ -134,11 +134,11 @@ export const KnowledgePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-400 text-[11px] truncate max-w-[200px]">
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <span className="text-slate-500 text-[11px] truncate min-w-0 flex-1">
                   출처: {art.source?.organization || '질병관리청'}
                 </span>
-                <span className="text-blue-600 font-bold flex items-center gap-0.5">
+                <span className="text-[#6B4CD6] font-bold flex items-center gap-0.5 shrink-0">
                   전문 보기
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
@@ -170,8 +170,23 @@ export const KnowledgePage: React.FC = () => {
               💡 <strong>핵심 요약:</strong> {activeArticle.summary}
             </div>
 
-            <div className="prose prose-sm max-w-none text-slate-800 whitespace-pre-line leading-relaxed text-sm pt-2">
-              {activeArticle.content_body}
+            <div className="prose prose-sm max-w-none text-slate-800 whitespace-pre-line break-words [overflow-wrap:anywhere] leading-relaxed text-sm pt-2">
+              {activeArticle.content_body.split(/(https?:\/\/[^\s)]+)/g).map((part, idx) =>
+                /^https?:\/\//.test(part) ? (
+                  <a
+                    key={idx}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#F1ECFE] text-[#6B4CD6] hover:bg-[#8B6CE8] hover:text-white px-2.5 py-0.5 text-xs font-bold transition-colors mx-0.5 break-all"
+                  >
+                    원문 기사 바로가기
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                ) : (
+                  <React.Fragment key={idx}>{part}</React.Fragment>
+                )
+              )}
             </div>
 
             {/* Official Source & License Citation Footer */}
