@@ -38,7 +38,7 @@ pip install -r requirements.txt
 alembic upgrade head
 PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8004 --reload
 ```
-API docs: `http://localhost:8004/api/babycare/v1/docs`
+API docs: `http://localhost:8004/api/babycare/v1/docs` (저장소 정본: [docs/API.md](docs/API.md))
 
 ### Frontend
 ```bash
@@ -56,3 +56,15 @@ PYTHONPATH=services/babycare/backend services/babycare/backend/.venv/bin/pytest 
 # Frontend build verification
 cd services/babycare/frontend && npm run build
 ```
+
+---
+
+## API
+
+`/api/babycare/v1` 아래 53개 엔드포인트의 계약(인증·역할·요청/응답·오류·환경변수)은
+**[API 명세 (docs/API.md)](docs/API.md)** 에 정리되어 있다. 저장소만 보고도 호출할 수 있게 소스에서 직접 옮긴 문서이며,
+Swagger(`/api/babycare/v1/docs`)는 실행 중인 인스턴스에서 같은 계약을 확인하는 용도다.
+
+- 인증: Nginx/SSO 프록시 헤더(`X-User-Email`) 우선, 없으면 JWT(Authorization Bearer 또는 `babycare_access_token` 쿠키)
+- 권한: 아이 단위 `owner` > `caregiver` > `viewer`
+- 문서: `docs/API.md`, 배포·운영: `docs/DEPLOYMENT_AND_RUNBOOK.md`
