@@ -24,8 +24,10 @@ class DevLoginRequest(BaseModel):
 def dev_login(req: DevLoginRequest, response: Response, db: Session = Depends(get_db)):
     """
     Local / Dev login endpoint for rapid testing across multi-user environments.
-    Creates or retrieves user and returns JWT token.
+    Disabled in production when ENABLE_DEV_LOGIN=false.
     """
+    if not settings.ENABLE_DEV_LOGIN:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
         user = User(

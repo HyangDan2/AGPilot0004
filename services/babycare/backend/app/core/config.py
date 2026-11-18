@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     
     # Auth configuration
     AUTH_MODE: str = os.getenv("AUTH_MODE", "hybrid")  # "hybrid", "hd2lab_proxy", "local"
+    ENABLE_DEV_LOGIN: bool = os.getenv("ENABLE_DEV_LOGIN", "true").lower() in ("1", "true", "yes")
     HD2LAB_HEADER_USER_ID: str = "X-User-Id"
     HD2LAB_HEADER_USER_EMAIL: str = "X-User-Email"
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
