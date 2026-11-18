@@ -12,7 +12,9 @@ export class ApiError extends Error {
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('babycare_access_token');
+  const token =
+    localStorage.getItem('babycare_access_token') ||
+    sessionStorage.getItem('babycare_access_token');
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
@@ -61,10 +63,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
-  verifyEmailOtp: (email: string, code: string, name?: string) =>
+  verifyEmailOtp: (email: string, code: string, name?: string, rememberMe: boolean = false) =>
     request<{ access_token: string; token_type: string; user: any }>('/auth/otp/verify', {
       method: 'POST',
-      body: JSON.stringify({ email, code, name }),
+      body: JSON.stringify({ email, code, name, remember_me: rememberMe }),
     }),
   getGoogleAuthStatus: () => request<{ configured: boolean; login_url: string }>('/auth/google/status'),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),

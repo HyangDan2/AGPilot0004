@@ -8,8 +8,8 @@ interface AuthContextType {
   isOtpModalOpen: boolean;
   openOtpLogin: () => void;
   closeOtpLogin: () => void;
-  completeOtpLogin: (token: string, userData: User) => void;
-  loginWithGoogle: () => Promise<void>;
+  completeOtpLogin: (token: string, userData: User, rememberMe?: boolean) => void;
+  loginWithGoogle: (rememberMe?: boolean) => Promise<void>;
   login: (email: string, name?: string, role?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -37,14 +37,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (rememberMe: boolean = false) => {
     try {
       const st = await api.getGoogleAuthStatus();
       if (!st.configured) {
-        alert('현재 서버에 Google OAuth 설정(GOOGLE_CLIENT_ID)이 준비 중입니다. 설정 완료 후 Google 계정으로 로그인할 수 있습니다.');
+        alert('현재 서버에 Google OAuth 설정(GOOGLE_CLIENT_ID)이 준비 중입니다. 이메일 6자리 OTP 로그인을 이용해 주세요.');
         return;
       }
-      window.location.href = st.login_url;
+      const sep = st.login_url.includes('?') ? '&' : '?';
+      window.location.href = `${st.login_url}${sep}remember_me=${rememberMe ? 'true' : 'false'}`;
     } catch {
       alert('Google 로그인 연결 상태를 확인할 수 없습니다.');
     }
@@ -54,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const res = await api.devLogin(email, name, role);
-      localStorage.setItem('babycare_access_token', res.access_token);
+      sessionStorage.setItem('babycare_access_token', res.access_token);
       setUser(res.user);
     } finally {
       setIsLoading(false);
@@ -66,13 +67,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.logout();
     } catch {}
     localStorage.removeItem('babycare_access_token');
+    sessionStorage.removeItem('babycare_access_token');
     setUser(null);
   };
 
   const openOtpLogin = () => setIsOtpModalOpen(true);
   const closeOtpLogin = () => setIsOtpModalOpen(false);
-  const completeOtpLogin = (token: string, userData: User) => {
-    localStorage.setItem('babycare_access_token', token);
+  const completeOtpLogin = (token: string, userData: User, rememberMe: boolean = false) => {
+    const isPrivileged = ['admin', 'admiral', 'overlord'].includes((userData.role || '').toLowerCase());
+    localStorage.removeItem('babycare_access_token');
+    sessionStorage.removeItem('babycare_access_token');
+    if (rememberMe && !isPrivileged) {
+      localStorage.setItem('babycare_access_token', token);
+    } else {
+      sessionStorage.setItem('babycare_access_token', token);
+    }
     setUser(userData);
     setIsOtpModalOpen(false);
   };

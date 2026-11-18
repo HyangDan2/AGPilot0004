@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import secrets
 import httpx
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -76,16 +77,70 @@ def google_oauth_status():
     }
 
 
+PRIVILEGED_ROLES = {"admin", "admiral", "overlord"}
+
+
+def _issue_session(response: Response, user: User, remember_me: bool) -> str:
+    """
+    Issues JWT and sets HttpOnly session cookie.
+    - Crew ('user'): supports remember_me (7 days persistent cookie vs 2h browser session cookie).
+    - Admiral / Admin / Overlord: remember_me is strictly disabled (1h browser session cookie only).
+    """
+    is_privileged = (user.role or "").lower() in PRIVILEGED_ROLES
+    allow_persist = bool(remember_me) and not is_privileged
+
+    if is_privileged:
+        expires_delta = timedelta(hours=1)
+        cookie_max_age = None
+    elif allow_persist:
+        expires_delta = timedelta(days=7)
+        cookie_max_age = 60 * 60 * 24 * 7
+    else:
+        expires_delta = timedelta(hours=2)
+        cookie_max_age = None
+
+    jwt_token = LocalJwtAuthAdapter.create_access_token(
+        {
+            "sub": user.id,
+            "email": user.email,
+            "role": user.role,
+            "remember_me": allow_persist,
+        },
+        expires_delta=expires_delta,
+    )
+
+    cookie_kwargs = {
+        "key": "babycare_access_token",
+        "value": jwt_token,
+        "httponly": True,
+        "secure": True,
+        "samesite": "lax",
+        "path": "/",
+    }
+    if cookie_max_age is not None:
+        cookie_kwargs["max_age"] = cookie_max_age
+
+    response.set_cookie(**cookie_kwargs)
+    return jwt_token
+
+
 @router.get("/google/login")
-def google_login():
-    """Redirects Crew users to Google OAuth 2.0 consent screen."""
+def google_login(remember_me: bool = Query(False)):
+    """Redirects Crew users to Google OAuth 2.0 consent screen with remember_me encoded in state."""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google OAuth(GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)가 서버에 아직 설정되지 않았습니다.",
         )
 
-    state = LocalJwtAuthAdapter.create_access_token({"nonce": secrets.token_urlsafe(12), "type": "oauth_state"})
+    state = LocalJwtAuthAdapter.create_access_token(
+        {
+            "nonce": secrets.token_urlsafe(12),
+            "type": "oauth_state",
+            "remember_me": bool(remember_me),
+        },
+        expires_delta=timedelta(minutes=10),
+    )
     params = urlencode({
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -107,6 +162,15 @@ async def google_callback(
     """Handles Google OAuth callback, creates/updates Crew user, and sets session cookie."""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=503, detail="Google OAuth가 설정되지 않았습니다.")
+
+    remember_me = False
+    if state:
+        try:
+            decoded_state = jwt.decode(state, settings.SECRET_KEY, algorithms=[LocalJwtAuthAdapter.ALGORITHM])
+            if decoded_state.get("type") == "oauth_state":
+                remember_me = bool(decoded_state.get("remember_me", False))
+        except Exception:
+            remember_me = False
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         token_resp = await client.post(
@@ -160,22 +224,8 @@ async def google_callback(
         db.commit()
         db.refresh(user)
 
-    jwt_token = LocalJwtAuthAdapter.create_access_token({
-        "sub": user.id,
-        "email": user.email,
-        "role": user.role,
-    })
-
     redirect = RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}?auth=google", status_code=302)
-    redirect.set_cookie(
-        key="babycare_access_token",
-        value=jwt_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/",
-        max_age=60 * 60 * 24 * 7,
-    )
+    _issue_session(redirect, user, remember_me=remember_me)
     return redirect
 
 
@@ -187,6 +237,7 @@ class OtpVerifyPayload(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6, pattern="^[0-9]{6}$")
     name: str | None = Field(default=None, max_length=80)
+    remember_me: bool = False
 
 
 @router.get("/otp/status")
@@ -293,20 +344,5 @@ def verify_email_otp(payload: OtpVerifyPayload, response: Response, db: Session 
         db.commit()
         db.refresh(user)
 
-    jwt_token = LocalJwtAuthAdapter.create_access_token({
-        "sub": user.id,
-        "email": user.email,
-        "role": user.role,
-    })
-
-    response.set_cookie(
-        key="babycare_access_token",
-        value=jwt_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/",
-        max_age=60 * 60 * 24 * 7,
-    )
-
+    jwt_token = _issue_session(response, user, remember_me=payload.remember_me)
     return Token(access_token=jwt_token, token_type="bearer", user=UserRead.model_validate(user))

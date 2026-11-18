@@ -94,3 +94,36 @@ def test_email_otp_login_flow(client, monkeypatch):
     assert vdata["user"]["email"] == "crew@hd2lab.org"
     assert vdata["user"]["name"] == "태휘 엄마"
     assert vdata["access_token"]
+    # Default remember_me=False -> session cookie (no Max-Age)
+    set_cookie_default = verify_res.headers.get("set-cookie", "")
+    assert "Max-Age=" not in set_cookie_default
+
+    # Crew with remember_me=True -> persistent 7-day cookie
+    client.post("/api/babycare/v1/auth/otp/request", json={"email": "crew@hd2lab.org"})
+    code2 = re.search(r"인증 코드: (\d{6})", sent_messages[-1][1]).group(1)
+    persist_res = client.post(
+        "/api/babycare/v1/auth/otp/verify",
+        json={"email": "crew@hd2lab.org", "code": code2, "remember_me": True},
+    )
+    assert persist_res.status_code == 200
+    assert "Max-Age=604800" in persist_res.headers.get("set-cookie", "")
+
+    # Admiral account with remember_me=True -> forced session-only cookie (no Max-Age)
+    from app.models.entities import User
+    from app.core.database import SessionLocal
+    db = SessionLocal()
+    try:
+        adm = User(email="admiral@hd2lab.org", name="Admiral", role="admiral", is_active=True)
+        db.add(adm)
+        db.commit()
+    finally:
+        db.close()
+
+    client.post("/api/babycare/v1/auth/otp/request", json={"email": "admiral@hd2lab.org"})
+    code3 = re.search(r"인증 코드: (\d{6})", sent_messages[-1][1]).group(1)
+    adm_res = client.post(
+        "/api/babycare/v1/auth/otp/verify",
+        json={"email": "admiral@hd2lab.org", "code": code3, "remember_me": True},
+    )
+    assert adm_res.status_code == 200
+    assert "Max-Age=" not in adm_res.headers.get("set-cookie", "")
