@@ -12,7 +12,10 @@ const MOBILE_NAV_ITEMS = [
 
 export const MobileNav: React.FC = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md lg:hidden">
+    <nav
+      data-bottom-nav="true"
+      className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-[var(--line)] bg-[var(--header-bg)] px-2 backdrop-blur-md lg:hidden"
+    >
       {MOBILE_NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         return (
@@ -22,14 +25,14 @@ export const MobileNav: React.FC = () => {
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
                 isActive
-                  ? 'text-blue-600 font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'text-[var(--accent-text)] font-bold'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
               }`
             }
           >
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                item.isHighlight ? 'bg-blue-50 text-blue-600' : ''
+                item.isHighlight ? 'bg-[var(--accent-soft)] text-[var(--accent-text)]' : ''
               }`}
             >
               <Icon className="w-5 h-5" />

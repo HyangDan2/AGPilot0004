@@ -2,46 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
+/* HD2Lab Unified Light / Dark Theme Tokens (synced with shared/hub.css) */
 :root {
+  color-scheme: light;
   --bg: #FAFAFD;
   --panel: #FFFFFF;
   --panel-soft: #F4F1FC;
   --text: #1D192B;
   --muted: #68627A;
   --line: #E8E4F2;
+  --border-strong: #D4CCE8;
   --accent: #8B6CE8;
   --accent-hover: #7655D9;
   --accent-text: #6B4CD6;
   --accent-soft: #F1ECFE;
+  --header-bg: rgba(250, 250, 253, 0.95);
   --brand-blue: #8B6CE8;
   --brand-mint: #10B981;
   --brand-lavender: #8B6CE8;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0D18;
+  --panel: #171424;
+  --panel-soft: #211C33;
+  --text: #F2EFFA;
+  --muted: #ACA4C2;
+  --line: #2E2942;
+  --border-strong: #3D3657;
+  --accent: #9D80F2;
+  --accent-hover: #AE95F6;
+  --accent-text: #C3B0FA;
+  --accent-soft: #251F3D;
+  --header-bg: rgba(15, 13, 24, 0.92);
+  --brand-blue: #9D80F2;
+  --brand-mint: #34D399;
+  --brand-lavender: #9D80F2;
+}
+
+html,
 body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Pretendard', Arial, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
   background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* HD2Lab Skew Geometry (unified with shared/hub.css) */
+::selection {
+  background-color: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Official HD2Lab Brand Mark (identical to shared/hub.css .hd2-mark) */
+.hd2-mark,
 .hd2-skew-mark {
   display: inline-block;
-  width: 15px;
-  height: 20px;
-  border: 2.5px solid var(--accent);
+  width: 17px;
+  height: 22px;
+  border: 3px solid var(--accent);
   transform: skewY(-23deg);
   position: relative;
   flex-shrink: 0;
 }
-.hd2-skew-mark:after {
+
+.hd2-mark::after,
+.hd2-skew-mark::after {
   content: '';
   position: absolute;
-  inset: 4px -7px -6px 4px;
+  inset: 4px -8px -7px 4px;
   border: 2px solid var(--accent);
+}
+
+.hd2-mark-sm {
+  width: 11px;
+  height: 14px;
+  border-width: 2px;
+}
+
+.hd2-mark-sm::after {
+  inset: 3px -5px -4px 3px;
+  border-width: 1.5px;
 }
 
 /* Custom scrollbars */
@@ -53,9 +97,187 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--border-strong);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--muted);
+}
+
+/* Comprehensive Dark Theme Overrides for Tailwind & Custom Hex Utilities */
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .bg-white\/95,
+:root[data-theme="dark"] .bg-white\/90 {
+  background-color: var(--panel) !important;
+}
+
+:root[data-theme="dark"] .bg-slate-50,
+:root[data-theme="dark"] .bg-gray-50,
+:root[data-theme="dark"] [class*="bg-[#FAFAFD]"] {
+  background-color: var(--bg) !important;
+}
+
+:root[data-theme="dark"] .bg-slate-100,
+:root[data-theme="dark"] .bg-slate-200,
+:root[data-theme="dark"] .bg-gray-100,
+:root[data-theme="dark"] [class*="bg-[#F4F1FC]"],
+:root[data-theme="dark"] [class*="bg-[#EAE4FA]"] {
+  background-color: var(--panel-soft) !important;
+}
+
+:root[data-theme="dark"] [class*="bg-[#F1ECFE]"] {
+  background-color: var(--accent-soft) !important;
+}
+
+/* Dark Theme Text Tokens */
+:root[data-theme="dark"] .text-slate-900,
+:root[data-theme="dark"] .text-slate-800,
+:root[data-theme="dark"] .text-gray-900,
+:root[data-theme="dark"] .text-gray-800,
+:root[data-theme="dark"] [class*="text-[#1D192B]"] {
+  color: var(--text) !important;
+}
+
+:root[data-theme="dark"] .text-slate-700,
+:root[data-theme="dark"] .text-gray-700 {
+  color: #D9D2EC !important;
+}
+
+:root[data-theme="dark"] .text-slate-600,
+:root[data-theme="dark"] .text-slate-500,
+:root[data-theme="dark"] .text-slate-400,
+:root[data-theme="dark"] .text-gray-600,
+:root[data-theme="dark"] .text-gray-500,
+:root[data-theme="dark"] [class*="text-[#68627A]"] {
+  color: var(--muted) !important;
+}
+
+:root[data-theme="dark"] [class*="text-[#6B4CD6]"] {
+  color: var(--accent-text) !important;
+}
+
+/* Dark Theme Borders */
+:root[data-theme="dark"] .border-slate-100,
+:root[data-theme="dark"] .border-slate-200,
+:root[data-theme="dark"] .border-slate-300,
+:root[data-theme="dark"] .border-gray-100,
+:root[data-theme="dark"] .border-gray-200,
+:root[data-theme="dark"] [class*="border-[#E8E4F2]"],
+:root[data-theme="dark"] [class*="border-[#D4CCE8]"],
+:root[data-theme="dark"] [class*="border-[#DDD2FB]"] {
+  border-color: var(--line) !important;
+}
+
+/* Dark Theme Badges, Pills & Semantic Chips */
+:root[data-theme="dark"] .bg-blue-50,
+:root[data-theme="dark"] .bg-blue-100,
+:root[data-theme="dark"] .bg-indigo-50,
+:root[data-theme="dark"] .bg-indigo-100,
+:root[data-theme="dark"] .bg-purple-50,
+:root[data-theme="dark"] .bg-purple-100,
+:root[data-theme="dark"] .bg-violet-50,
+:root[data-theme="dark"] .bg-violet-100 {
+  background-color: var(--accent-soft) !important;
+}
+
+:root[data-theme="dark"] .text-blue-600,
+:root[data-theme="dark"] .text-blue-700,
+:root[data-theme="dark"] .text-blue-800,
+:root[data-theme="dark"] .text-blue-900,
+:root[data-theme="dark"] .text-indigo-700,
+:root[data-theme="dark"] .text-purple-700,
+:root[data-theme="dark"] .text-violet-700 {
+  color: var(--accent-text) !important;
+}
+
+:root[data-theme="dark"] .border-blue-100,
+:root[data-theme="dark"] .border-blue-200,
+:root[data-theme="dark"] .border-indigo-200,
+:root[data-theme="dark"] .border-purple-200 {
+  border-color: #3D3264 !important;
+}
+
+:root[data-theme="dark"] .bg-emerald-50,
+:root[data-theme="dark"] .bg-emerald-100,
+:root[data-theme="dark"] .bg-green-50,
+:root[data-theme="dark"] .bg-green-100 {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+}
+:root[data-theme="dark"] .text-emerald-700,
+:root[data-theme="dark"] .text-emerald-800,
+:root[data-theme="dark"] .text-emerald-900,
+:root[data-theme="dark"] .text-green-700,
+:root[data-theme="dark"] .text-green-800 {
+  color: #6EE7B7 !important;
+}
+:root[data-theme="dark"] .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+:root[data-theme="dark"] .bg-amber-50,
+:root[data-theme="dark"] .bg-amber-50\/80,
+:root[data-theme="dark"] .bg-amber-100,
+:root[data-theme="dark"] .bg-yellow-50,
+:root[data-theme="dark"] .bg-yellow-100 {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+:root[data-theme="dark"] .text-amber-700,
+:root[data-theme="dark"] .text-amber-800,
+:root[data-theme="dark"] .text-amber-900,
+:root[data-theme="dark"] .text-yellow-700,
+:root[data-theme="dark"] .text-yellow-800 {
+  color: #FCD34D !important;
+}
+:root[data-theme="dark"] .border-amber-200,
+:root[data-theme="dark"] .border-amber-200\/70 {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+:root[data-theme="dark"] .bg-rose-50,
+:root[data-theme="dark"] .bg-rose-100,
+:root[data-theme="dark"] .bg-red-50,
+:root[data-theme="dark"] .bg-red-100 {
+  background-color: rgba(244, 63, 94, 0.16) !important;
+}
+:root[data-theme="dark"] .text-rose-600,
+:root[data-theme="dark"] .text-rose-700,
+:root[data-theme="dark"] .text-rose-800,
+:root[data-theme="dark"] .text-red-600,
+:root[data-theme="dark"] .text-red-700 {
+  color: #FDA4AF !important;
+}
+:root[data-theme="dark"] .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+:root[data-theme="dark"] .bg-sky-50,
+:root[data-theme="dark"] .bg-sky-100,
+:root[data-theme="dark"] .bg-cyan-50,
+:root[data-theme="dark"] .bg-cyan-100 {
+  background-color: rgba(14, 165, 233, 0.16) !important;
+}
+:root[data-theme="dark"] .text-sky-700,
+:root[data-theme="dark"] .text-cyan-700 {
+  color: #7DD3FC !important;
+}
+
+/* Form controls in dark mode */
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background-color: var(--panel-soft);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: var(--muted);
+}
+
+/* Hover states in dark mode */
+:root[data-theme="dark"] .hover\:bg-slate-50:hover,
+:root[data-theme="dark"] .hover\:bg-slate-100:hover,
+:root[data-theme="dark"] .hover\:bg-slate-200:hover {
+  background-color: #2A2440 !important;
 }

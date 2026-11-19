@@ -2,9 +2,21 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('hd2lab-theme');
+          if (t !== 'dark' && t !== 'light') {
+            t = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.dataset.theme = t;
+          document.documentElement.style.colorScheme = t;
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#8B6CE8" />
-    <title>HD²LAB BabyCare — 스마트 육아 · 성장 추적 · 통계 분석 플랫폼</title>
+    <meta name="theme-color" content="#FAFAFD" />
+    <title>HD2Lab | BabyCare</title>
     <meta name="description" content="무계정 Local-First 보안! 아이 성장 추적, 수유·수면 ZIP 통계 분석, 질병관리청 국가예방접종 일정, 향단이 AI 육아 도우미를 한 곳에서 만나보세요." />
     <link rel="canonical" href="https://hd2lab.duckdns.org/babycare/" />
 
@@ -29,10 +41,14 @@
     <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="HD²LAB BabyCare — 스마트 육아 · 통계 분석 · 향단이 AI" />
-    <meta name="twitter:description" content="로그인 없이 바로 쓰는 개인정보 안심 육아 플랫폼! 수유·수면 ZIP 통계 분석, 성장도표, 국가예방접종 일정, 소아과 AI 도우미." />
+    <meta name="twitter:description" content="로그인 없이 바로 쓰는 개인정보 안심 육아 플랫폼! 수유·수면 ZIP 통계 분석, 성장도표, 질병관리청 예방접종 일정, 소아과 AI 도우미까지." />
     <meta name="twitter:image" content="https://hd2lab.duckdns.org/babycare/og-thumbnail.png" />
+
+    <!-- HD2Lab Shared Light/Dark Theme Controller -->
+    <link rel="stylesheet" href="/theme-toggle.css?v=20261117-theme-v1" />
+    <script src="/theme-toggle.js" defer></script>
   </head>
-  <body class="bg-[#FAFAFD] text-[#1D192B] antialiased selection:bg-[#F1ECFE] selection:text-[#6B4CD6]">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

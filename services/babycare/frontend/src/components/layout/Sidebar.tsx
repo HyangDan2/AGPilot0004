@@ -27,18 +27,18 @@ export const Sidebar: React.FC = () => {
   const { activeChild } = useChild();
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white min-h-[calc(100vh-4rem)] p-4 justify-between">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-[var(--line)] bg-[var(--panel)] min-h-[calc(100vh-4rem)] p-4 justify-between transition-colors">
       <div className="space-y-6">
         {/* Child Badge Card */}
         {activeChild && (
-          <div className="rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-50/50 to-blue-50 p-4 border border-blue-100">
+          <div className="rounded-2xl bg-[var(--panel-soft)] p-4 border border-[var(--line)]">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white font-extrabold text-lg shadow-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)] text-white font-extrabold text-lg shadow-sm">
                 {activeChild.sex === 'male' ? '👦' : '👧'}
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="font-bold text-slate-900 truncate">{activeChild.name}</h4>
-                <p className="text-xs text-blue-700 font-semibold mt-0.5">
+                <h4 className="font-bold text-[var(--text)] truncate">{activeChild.name}</h4>
+                <p className="text-xs text-[var(--accent-text)] font-semibold mt-0.5">
                   생후 {activeChild.days_since_birth ?? 0}일차 ({activeChild.months_since_birth ?? 0}개월)
                 </p>
                 {activeChild.is_premature && (
@@ -62,19 +62,29 @@ export const Sidebar: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-[var(--accent)] text-white shadow-sm'
+                      : 'text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--text)]'
                   }`
                 }
               >
-                <div className="flex items-center gap-3">
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className="rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
-                    {item.badge}
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
                 )}
               </NavLink>
             );
@@ -83,12 +93,12 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer Branding Info */}
-      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 border border-slate-200/60">
-        <div className="font-bold text-slate-700 flex items-center gap-1.5">
-          <span className="hd2-skew-mark" style={{ width: 10, height: 13 }} />
-          HD²LAB Platform
+      <div className="rounded-xl bg-[var(--panel-soft)] p-3 text-xs text-[var(--muted)] border border-[var(--line)]">
+        <div className="font-bold text-[var(--text)] flex items-center gap-2">
+          <span className="hd2-mark hd2-mark-sm" aria-hidden="true" />
+          HD2Lab Platform
         </div>
-        <p className="mt-1 text-[11px] text-slate-400">
+        <p className="mt-1 text-[11px] text-[var(--muted)]">
           근거 기반 영유아 성장·케어 솔루션
         </p>
       </div>

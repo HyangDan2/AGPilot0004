@@ -59,25 +59,17 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFD] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-[#E8E4F2] space-y-6">
-        {/* Brand Header */}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex items-center justify-center p-4 transition-colors">
+      <div className="w-full max-w-md bg-[var(--panel)] rounded-3xl p-8 shadow-xl border border-[var(--line)] space-y-6">
+        {/* Brand Header (Official HD2Lab .hd2-mark) */}
         <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 64 64"
-              className="w-14 h-14"
-              aria-hidden="true"
-            >
-              <rect width="64" height="64" rx="16" fill="#FAFAFD" stroke="#E8E4F2" strokeWidth="2" />
-              <path d="M15 20L35 10V43L15 53ZM29 24L49 14V47L29 57Z" fill="none" stroke="#8B6CE8" strokeWidth="4" />
-            </svg>
+          <div className="inline-flex items-center justify-center gap-3.5">
+            <span className="hd2-mark" aria-hidden="true" />
+            <h1 className="text-2xl font-bold tracking-[-0.8px] text-[var(--text)]">
+              HD2Lab <span className="text-[var(--accent)]">BabyCare</span>
+            </h1>
           </div>
-          <h1 className="text-2xl font-black text-[#1D192B] tracking-tight">
-            HD²LAB <span className="text-[#8B6CE8]">BabyCare</span>
-          </h1>
-          <p className="text-xs text-[#68627A]">통합 영유아 성장 및 맞춤 케어 웹 플랫폼 · Crew 로그인</p>
+          <p className="text-xs text-[var(--muted)]">통합 영유아 성장 및 맞춤 케어 웹 플랫폼 · Crew 로그인</p>
         </div>
 
         {/* Remember Me Checkbox (Crew only; Admiral/Overlord excluded) */}

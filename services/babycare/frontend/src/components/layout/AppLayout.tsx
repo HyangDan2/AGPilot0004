@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -9,6 +9,45 @@ import { useChild } from '../../context/ChildContext';
 export const AppLayout: React.FC = () => {
   const { createChild } = useChild();
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
+
+  // Dynamically allocate floating theme toggle (.hd2-theme-fab) bottom offset
+  // based on the real rendered height of any visible bottom navigation bar.
+  useEffect(() => {
+    const syncThemeFabOffset = () => {
+      const root = document.documentElement;
+      const bottomNav = document.querySelector<HTMLElement>('[data-bottom-nav="true"]');
+      if (!bottomNav) {
+        root.style.removeProperty('--hd2-theme-fab-bottom');
+        return;
+      }
+      const style = window.getComputedStyle(bottomNav);
+      const rect = bottomNav.getBoundingClientRect();
+      const visibleHeight = style.display !== 'none' && style.visibility !== 'hidden' ? rect.height : 0;
+      if (visibleHeight > 0) {
+        const gap = 16;
+        root.style.setProperty(
+          '--hd2-theme-fab-bottom',
+          `calc(${Math.ceil(visibleHeight) + gap}px + env(safe-area-inset-bottom, 0px))`
+        );
+      } else {
+        root.style.removeProperty('--hd2-theme-fab-bottom');
+      }
+    };
+
+    syncThemeFabOffset();
+    const bottomNav = document.querySelector<HTMLElement>('[data-bottom-nav="true"]');
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncThemeFabOffset) : null;
+    if (ro && bottomNav) ro.observe(bottomNav);
+    window.addEventListener('resize', syncThemeFabOffset, { passive: true });
+    window.addEventListener('orientationchange', syncThemeFabOffset);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', syncThemeFabOffset);
+      window.removeEventListener('orientationchange', syncThemeFabOffset);
+      document.documentElement.style.removeProperty('--hd2-theme-fab-bottom');
+    };
+  }, []);
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState(new Date().toISOString().split('T')[0]);
   const [sex, setSex] = useState<'male' | 'female'>('male');
@@ -41,7 +80,7 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
       <Header onOpenAddChild={() => setIsAddChildModalOpen(true)} />
       <div className="flex flex-1">
         <Sidebar />
