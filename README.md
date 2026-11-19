@@ -1,70 +1,94 @@
 # HD²LAB BabyCare
 
-> **Integrated Parenting Web Platform**  
-> *Baby Profile • Growth Tracker • Daily Care (Feeding & Sleep) • Health & Vaccination Calendar • Parenting Knowledge • HyangDani Baby AI*
+> **Integrated parenting web platform**
+> *Baby profiles • Growth tracker • Daily care (feeding & sleep) • Health and vaccination calendar • Parenting knowledge • HyangDani Baby AI*
+
+**Live:** https://hd2lab.duckdns.org/babycare/
 
 ---
 
 ## 1. Overview
 
-**HD²LAB BabyCare**는 아이별 프로필과 성장 데이터를 기반으로 개인화된 육아 경험을 제공하는 웹 플랫폼(Responsive Web App + PWA)입니다.
+**HD²LAB BabyCare** is a responsive web app (PWA) that keeps a child's profile, growth, daily care and health schedule in one place and adds a grounded parenting assistant. It runs with an account (Google or e-mail OTP) or, for a quick guest session, entirely in the browser.
 
-### Core Modules
-1. **Baby Profile & Family Sharing**: 다자녀 프로필 관리, 이른둥이(미숙아) 교정연령 계산, 가족 구성원(소유자/양육자/조회자) 공동 관리.
-2. **Growth Tracker**: 2017 질병관리청(KDCA) 소아청소년 성장도표 공식 LMS 백분위수 산출 및 인터랙티브 성장 곡선 차트.
-3. **Daily Care Tracker**: 수유(분유/직접 모유/유축 모유) 기록 및 실시간 수면 타이머, 자정 넘어가는 수면 자동 집계.
-4. **Health Calendar**: 질병관리청 국가예방접종(NIP) 및 영유아 건강검진(1~8차) 출생일 기반 자동 일정 생성 및 관리.
-5. **Parenting Knowledge**: 공공누리 제1유형 공식 보건당국 가이드라인 8대 카테고리 검색 라이브러리.
-6. **HyangDani Baby AI**: RAG 기반 공인 가이드 연동 육아 인공지능, 응급 징후 자동 감지 및 의료 안전 가드레일.
+### Core modules
 
----
-
-## 2. Technology Stack
-
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Recharts, Lucide Icons, TanStack Query, PWA
-- **Backend**: Python 3.13, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, SQLite/PostgreSQL
-- **AI**: Gateway Abstraction (Gemini / Local Llama / Deterministic Mock), 8-step Knowledge RAG Pipeline
-- **Deploy**: Nginx Reverse Proxy (`/babycare/`, `/api/babycare/v1/`), systemd service unit
+1. **Baby profile & family sharing** — multiple children per account, corrected age for preterm infants, and per-child membership with `owner` > `caregiver` > `viewer` roles. Owners invite by e-mail or by a one-time invite code; joining through a code returns a pending request that the owner approves.
+2. **Growth tracker** — KDCA (2017) child growth standard LMS percentile calculation with interactive growth-curve charts, per-metric curves, and a growth summary.
+3. **Daily care tracker** — feeding records (formula, direct breastfeeding, expressed milk, weaning food) with daily totals, and a live sleep timer that correctly splits a sleep session that crosses midnight.
+4. **Health calendar** — Korean NIP vaccination schedule and the 1st–8th infant health check-ups generated from the child's birth date, with event CRUD and a calendar summary. `GET /health-rules/live` serves the current rule set, so the schedule can be updated on the server without a code deploy.
+5. **Parenting knowledge** — a searchable library of 8 official public-source articles across 8 categories (newborn care, feeding, sleep, weaning, health, development, safety, parenting tips), filterable by category, month of age and keyword.
+6. **HyangDani Baby AI** — an 8-step RAG pipeline over the verified knowledge base: safety screening (emergency, high fever and dosage questions get an immediate guarded answer), knowledge retrieval, consent-gated child context, prompt assembly, generation through the HD2Lab AI Gateway, post-validation and source citations. Conversations are stored per user.
+7. **Statistics ZIP analysis** — upload a multi-month `stat_*.zip` export and get feeding, sleep, diaper, play and tummy-time trends; pasted CSV works too. Duplicate dates are merged on import. Guests get a stateless analysis (10 MB limit, nothing stored) and signed-in users can attach the result to a child.
 
 ---
 
-## 3. Quick Start (Local Development)
+## 2. Technology stack
+
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Recharts, Lucide icons, TanStack Query, PWA manifest
+- **Backend**: Python 3.13, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, SQLite (single node) or PostgreSQL
+- **AI**: gateway abstraction over the HD2Lab AI Gateway (Unix socket), with Gemini, local Llama and a deterministic mock provider; rule-based RAG fallback when the gateway is unavailable
+- **Auth**: Google OAuth (`Crew` accounts) or a 6-digit e-mail OTP; `X-User-Email` from the Nginx/SSO proxy or a JWT (`Authorization: Bearer` / `babycare_access_token` cookie); optional 7-day "keep me signed in"
+- **Deploy**: Nginx reverse proxy at `/babycare/` and `/api/babycare/v1/`, systemd unit `hd2lab-babycare`
+
+---
+
+## 3. Quick start (local development)
 
 ### Backend
+
 ```bash
 cd services/babycare/backend
-source .venv/bin/activate
+python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
 PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8004 --reload
 ```
-API docs: `http://localhost:8004/api/babycare/v1/docs` (저장소 정본: [docs/API.md](docs/API.md))
+
+API docs on a running instance: `http://localhost:8004/api/babycare/v1/docs`. The repository copy of the contract is [docs/API.md](docs/API.md).
 
 ### Frontend
+
 ```bash
 cd services/babycare/frontend
 npm install
-npm run dev
+npm run dev      # http://localhost:5173/ (Vite base path /babycare/)
 ```
-Web App: `http://localhost:5173/`
 
-### Automated Tests
+### Tests
+
 ```bash
-# Backend pytest suite (13 test suites)
+# Backend pytest suites (11 modules)
 PYTHONPATH=services/babycare/backend services/babycare/backend/.venv/bin/pytest tests/backend/ -v
 
-# Frontend build verification
+# Frontend production build
 cd services/babycare/frontend && npm run build
 ```
 
 ---
 
-## API
+## 4. API
 
-`/api/babycare/v1` 아래 53개 엔드포인트의 계약(인증·역할·요청/응답·오류·환경변수)은
-**[API 명세 (docs/API.md)](docs/API.md)** 에 정리되어 있다. 저장소만 보고도 호출할 수 있게 소스에서 직접 옮긴 문서이며,
-Swagger(`/api/babycare/v1/docs`)는 실행 중인 인스턴스에서 같은 계약을 확인하는 용도다.
+The full REST contract for `/api/babycare/v1` — authentication, roles, request/response bodies, error codes and environment variables — is in **[docs/API.md](docs/API.md)**, copied from the source so the repository is enough to call the service without a running instance.
 
-- 인증: Nginx/SSO 프록시 헤더(`X-User-Email`) 우선, 없으면 JWT(Authorization Bearer 또는 `babycare_access_token` 쿠키)
-- 권한: 아이 단위 `owner` > `caregiver` > `viewer`
-- 문서: `docs/API.md`, 배포·운영: `docs/DEPLOYMENT_AND_RUNBOOK.md`
+- Base path: `/api/babycare/v1`
+- Authentication: Nginx/SSO proxy header (`X-User-Email`) first, otherwise JWT (`Authorization: Bearer` or the `babycare_access_token` cookie); `POST /auth/otp/request` and `/auth/otp/verify` implement the e-mail OTP flow and `/auth/google/*` the OAuth flow
+- Roles are per child: `owner` > `caregiver` > `viewer`
+- Screening, deployment and live-update procedures: [docs/DEPLOYMENT_AND_RUNBOOK.md](docs/DEPLOYMENT_AND_RUNBOOK.md)
+
+Endpoint groups: `/auth`, `/children` (profiles, members, invites, join requests), `/children/{id}/feeding`, `/children/{id}/sleep`, `/children/{id}/growth`, `/children/{id}/calendar` and `/health-rules`, `/articles`, `/analytics`, `/ai`, plus system health.
+
+---
+
+## 5. Deployment
+
+`deploy/` holds the operational assets: `.env.example`, the `hd2lab-babycare` systemd unit, the Nginx site for `/babycare/`, registration scripts for the Server-HQ service hub and the AI Gateway route, and one-command `update_live.sh` / `backup.sh` / `restore.sh`. Runtime data lives in `data/` and the upload directory configured by `UPLOAD_DIR`; `health_rules_live.json` can be replaced on the server to publish a new vaccination or check-up schedule immediately.
+
+---
+
+## 6. Documentation
+
+- [API contract (docs/API.md)](docs/API.md)
+- [Deployment and runbook (docs/DEPLOYMENT_AND_RUNBOOK.md)](docs/DEPLOYMENT_AND_RUNBOOK.md)
+- [Architecture review (docs/architecture-review.md)](docs/architecture-review.md)
+- [Implementation plan (docs/implementation-plan.md)](docs/implementation-plan.md)
