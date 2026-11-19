@@ -6,6 +6,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isOtpModalOpen: boolean;
+  welcomeMessage: string | null;
+  clearWelcomeMessage: () => void;
   openOtpLogin: () => void;
   closeOtpLogin: () => void;
   completeOtpLogin: (token: string, userData: User, rememberMe?: boolean) => void;
@@ -20,6 +22,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
+
+  const showWelcome = (name?: string | null) => {
+    const displayName = (name || '사용자').trim();
+    setWelcomeMessage(`${displayName}님, 환영합니다!`);
+    window.setTimeout(() => {
+      setWelcomeMessage((prev) => (prev === `${displayName}님, 환영합니다!` ? null : prev));
+    }, 4500);
+  };
 
   useEffect(() => {
     checkAuth();
@@ -29,8 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const me = await api.getMe();
       setUser(me);
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('auth') === 'google') {
+        showWelcome(me?.name || me?.email?.split('@')[0]);
+        params.delete('auth');
+        const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
     } catch {
       localStorage.removeItem('babycare_access_token');
+      sessionStorage.removeItem('babycare_access_token');
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -57,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.devLogin(email, name, role);
       sessionStorage.setItem('babycare_access_token', res.access_token);
       setUser(res.user);
+      showWelcome(res.user.name || res.user.email?.split('@')[0]);
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const clearWelcomeMessage = () => setWelcomeMessage(null);
   const openOtpLogin = () => setIsOtpModalOpen(true);
   const closeOtpLogin = () => setIsOtpModalOpen(false);
   const completeOtpLogin = (token: string, userData: User, rememberMe: boolean = false) => {
@@ -84,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(userData);
     setIsOtpModalOpen(false);
+    showWelcome(userData.name || userData.email?.split('@')[0]);
   };
 
   return (
@@ -92,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         isOtpModalOpen,
+        welcomeMessage,
+        clearWelcomeMessage,
         openOtpLogin,
         closeOtpLogin,
         completeOtpLogin,

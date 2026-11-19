@@ -2,11 +2,21 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useChild } from '../../context/ChildContext';
 import { api } from '../../services/api';
-import { ChevronDown, Plus, Baby, User as UserIcon, LogOut, Lock, Mail } from 'lucide-react';
+import { ChevronDown, Plus, Baby, User as UserIcon, LogOut, Lock, Mail, Sparkles, X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
 export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChild }) => {
-  const { user, isOtpModalOpen, openOtpLogin, closeOtpLogin, completeOtpLogin, loginWithGoogle, logout } = useAuth();
+  const {
+    user,
+    isOtpModalOpen,
+    welcomeMessage,
+    clearWelcomeMessage,
+    openOtpLogin,
+    closeOtpLogin,
+    completeOtpLogin,
+    loginWithGoogle,
+    logout,
+  } = useAuth();
   const { childrenList, activeChild, setActiveChildId } = useChild();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -198,6 +208,27 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
       </div>
     </header>
 
+    {welcomeMessage && (
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed top-20 right-4 md:right-8 z-50 flex items-center gap-3 rounded-2xl bg-[#1D192B] text-white px-4 py-3 shadow-xl border border-[#8B6CE8]/40 animate-in fade-in slide-in-from-top-2 duration-200"
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#8B6CE8] text-white shrink-0">
+          <Sparkles className="w-4 h-4" />
+        </div>
+        <span className="text-sm font-bold tracking-tight">{welcomeMessage}</span>
+        <button
+          type="button"
+          onClick={clearWelcomeMessage}
+          aria-label="환영 메시지 닫기"
+          className="ml-1 rounded-lg p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    )}
+
     <Modal isOpen={isOtpModalOpen} onClose={closeOtpLogin} title="가족 공유 로그인 (Crew)">
       <div className="space-y-4">
         {/* Remember Me checkbox (Crew only; Admiral/Overlord never persists) */}
@@ -250,9 +281,15 @@ export const Header: React.FC<{ onOpenAddChild?: () => void }> = ({ onOpenAddChi
             <button
               type="button"
               onClick={() => loginWithGoogle(rememberMe)}
-              className="w-full rounded-xl bg-white hover:bg-[#FAFAFD] border border-[#E8E4F2] text-[#1D192B] py-2.5 text-sm font-bold transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-white hover:bg-[#F4F1FC] border border-[#D4CCE8] text-[#1D192B] py-2.5 px-4 text-sm font-bold shadow-sm transition-colors"
             >
-              Google 계정으로 로그인 (Crew)
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.15 3.57-8.64z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.95H1.28v3.1A12 12 0 0 0 12 24z" />
+                <path fill="#FBBC05" d="M5.28 14.29A7.2 7.2 0 0 1 4.9 12c0-.79.14-1.56.38-2.29V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l4-3.1z" />
+                <path fill="#EA4335" d="M12 4.76c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l4 3.1c.95-2.84 3.6-4.95 6.72-4.95z" />
+              </svg>
+              <span>Google 계정으로 로그인 (Crew)</span>
             </button>
           </form>
         ) : (

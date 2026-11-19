@@ -1,122 +1,220 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Baby, Shield, UserCheck, ArrowRight } from 'lucide-react';
+import { api } from '../services/api';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { completeOtpLogin, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('user');
-  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [isBusy, setIsBusy] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
-  const handleCustomLogin = async (e: React.FormEvent) => {
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    setIsLoading(true);
+    if (!email.trim()) return;
+    setIsBusy(true);
+    setStatusMsg(null);
+    setIsError(false);
     try {
-      await login(email, name || email.split('@')[0], role);
-      navigate('/');
+      const res = await api.requestEmailOtp(email.trim());
+      setStep('code');
+      setStatusMsg(res.message);
     } catch (err: any) {
-      alert(err.message || '로그인 실패');
+      setIsError(true);
+      setStatusMsg(err.message || '인증 코드 발송에 실패했습니다.');
     } finally {
-      setIsLoading(false);
+      setIsBusy(false);
     }
   };
 
-  const handlePersonaLogin = async (pEmail: string, pName: string, pRole: string) => {
-    setIsLoading(true);
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || code.trim().length !== 6) return;
+    setIsBusy(true);
+    setStatusMsg(null);
+    setIsError(false);
     try {
-      await login(pEmail, pName, pRole);
-      navigate('/');
+      const res = await api.verifyEmailOtp(
+        email.trim(),
+        code.trim(),
+        name.trim() || undefined,
+        rememberMe
+      );
+      completeOtpLogin(res.access_token, res.user, rememberMe);
+      navigate('/', { replace: true });
     } catch (err: any) {
-      alert(err.message || '로그인 실패');
+      setIsError(true);
+      setStatusMsg(err.message || '인증 코드 확인에 실패했습니다.');
     } finally {
-      setIsLoading(false);
+      setIsBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-100 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-3xl bg-blue-600 text-white shadow-md">
-            <span className="hd2-skew-mark" style={{ borderColor: '#ffffff', width: 16, height: 20 }} />
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">HD²LAB BabyCare</h1>
-          <p className="text-xs text-slate-500">통합 영유아 성장 및 맞춤 케어 웹 플랫폼</p>
-        </div>
-
-        {/* Quick Persona Switcher */}
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">
-            빠른 테스트 페르소나 선택
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handlePersonaLogin('parent1@hd2lab.org', '엄마/아빠 (소유자)', 'user')}
-              className="p-3 rounded-2xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100/70 text-left transition-colors"
+    <div className="min-h-screen bg-[#FAFAFD] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-[#E8E4F2] space-y-6">
+        {/* Brand Header */}
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 64 64"
+              className="w-14 h-14"
+              aria-hidden="true"
             >
-              <span className="text-xs font-bold text-blue-900 block">👑 부모 소유자</span>
-              <span className="text-[11px] text-blue-700">전체 CRUD 및 관리</span>
-            </button>
+              <rect width="64" height="64" rx="16" fill="#FAFAFD" stroke="#E8E4F2" strokeWidth="2" />
+              <path d="M15 20L35 10V43L15 53ZM29 24L49 14V47L29 57Z" fill="none" stroke="#8B6CE8" strokeWidth="4" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-black text-[#1D192B] tracking-tight">
+            HD²LAB <span className="text-[#8B6CE8]">BabyCare</span>
+          </h1>
+          <p className="text-xs text-[#68627A]">통합 영유아 성장 및 맞춤 케어 웹 플랫폼 · Crew 로그인</p>
+        </div>
+
+        {/* Remember Me Checkbox (Crew only; Admiral/Overlord excluded) */}
+        <label className="flex items-start gap-2.5 rounded-2xl bg-[#F4F1FC] border border-[#E8E4F2] p-3.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="mt-0.5 rounded border-[#D4CCE8] text-[#8B6CE8] focus:ring-[#8B6CE8]"
+          />
+          <div className="text-xs leading-snug">
+            <span className="font-bold text-[#1D192B]">로그인 상태를 유지하겠습니까?</span>
+            <p className="text-[11px] text-[#68627A] mt-0.5">
+              Crew 계정 전용 (체크 시 7일 유지, 해제 시 브라우저 종료 시 자동 로그아웃 · Admiral 계정은 미적용)
+            </p>
+          </div>
+        </label>
+
+        {/* Primary Google OAuth Button */}
+        <button
+          type="button"
+          onClick={() => loginWithGoogle(rememberMe)}
+          className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-white hover:bg-[#F4F1FC] border border-[#D4CCE8] text-[#1D192B] py-3 px-4 text-sm font-bold shadow-sm transition-colors"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.15 3.57-8.64z" />
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.95H1.28v3.1A12 12 0 0 0 12 24z" />
+            <path fill="#FBBC05" d="M5.28 14.29A7.2 7.2 0 0 1 4.9 12c0-.79.14-1.56.38-2.29V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l4-3.1z" />
+            <path fill="#EA4335" d="M12 4.76c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l4 3.1c.95-2.84 3.6-4.95 6.72-4.95z" />
+          </svg>
+          <span>Google 계정으로 로그인 (Crew)</span>
+        </button>
+
+        <div className="relative flex items-center">
+          <div className="flex-grow border-t border-[#E8E4F2]" />
+          <span className="mx-3 text-[11px] font-semibold text-[#68627A]">또는 이메일 6자리 OTP</span>
+          <div className="flex-grow border-t border-[#E8E4F2]" />
+        </div>
+
+        {/* Email OTP Form */}
+        {step === 'email' ? (
+          <form onSubmit={handleRequestOtp} className="space-y-3.5">
+            <div>
+              <label className="block text-xs font-bold text-[#1D192B] mb-1">이메일 주소</label>
+              <input
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-sm focus:border-[#8B6CE8] focus:outline-none"
+              />
+            </div>
+
+            {statusMsg && (
+              <p className={`text-xs font-semibold ${isError ? 'text-rose-600' : 'text-[#6B4CD6]'}`}>
+                {statusMsg}
+              </p>
+            )}
+
             <button
-              onClick={() => handlePersonaLogin('caregiver1@hd2lab.org', '베이비시터 이모님', 'user')}
-              className="p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/70 text-left transition-colors"
+              type="submit"
+              disabled={isBusy}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] disabled:opacity-50 text-white font-bold py-3 text-sm shadow-sm transition-colors"
             >
-              <span className="text-xs font-bold text-emerald-900 block">🍼 공동 양육자</span>
-              <span className="text-[11px] text-emerald-700">수유/수면 기록 전용</span>
+              <Mail className="w-4 h-4" />
+              <span>{isBusy ? '인증 코드 발송 중...' : '6자리 인증 코드 받기'}</span>
             </button>
-          </div>
-        </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-3.5">
+            {statusMsg && (
+              <p className={`text-xs font-semibold ${isError ? 'text-rose-600' : 'text-[#6B4CD6]'}`}>
+                {statusMsg}
+              </p>
+            )}
 
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-slate-200 w-full" />
-          <span className="bg-white px-3 text-xs text-slate-400 font-semibold uppercase absolute">
-            또는 직접 로그인
-          </span>
-        </div>
+            <div>
+              <label className="block text-xs font-bold text-[#1D192B] mb-1">6자리 인증 코드</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                required
+                placeholder="123456"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-center font-mono text-lg tracking-[0.3em] focus:border-[#8B6CE8] focus:outline-none"
+              />
+            </div>
 
-        {/* Form */}
-        <form onSubmit={handleCustomLogin} className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">이메일 주소</label>
-            <input
-              type="email"
-              required
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-bold text-[#1D192B] mb-1">표시 이름 (선택)</label>
+              <input
+                type="text"
+                placeholder="예: 태휘 아빠"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-xl border border-[#E8E4F2] px-3.5 py-2.5 text-sm focus:border-[#8B6CE8] focus:outline-none"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">이름 / 닉네임</label>
-            <input
-              type="text"
-              placeholder="예: 지우 아빠"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('email');
+                  setStatusMsg(null);
+                  setIsError(false);
+                }}
+                className="flex-1 rounded-xl bg-[#F4F1FC] hover:bg-[#EAE4FA] text-[#6B4CD6] py-3 text-xs font-bold transition-colors"
+              >
+                이메일 변경
+              </button>
+              <button
+                type="submit"
+                disabled={isBusy}
+                className="flex-[2] inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#8B6CE8] hover:bg-[#7655D9] disabled:opacity-50 text-white py-3 text-sm font-bold shadow-sm transition-colors"
+              >
+                <span>{isBusy ? '확인 중...' : '인증 완료 및 로그인'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        )}
 
+        {/* Local-First Entry Button */}
+        <div className="pt-2 border-t border-[#E8E4F2]">
           <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-sm shadow-md transition-all active:scale-95"
+            type="button"
+            onClick={() => navigate('/')}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#F4F1FC] hover:bg-[#EAE4FA] border border-[#E8E4F2] text-[#6B4CD6] py-2.5 px-4 text-xs font-bold transition-colors"
           >
-            <span>{isLoading ? '접속 중...' : '시작하기'}</span>
-            <ArrowRight className="w-4 h-4" />
+            <Lock className="w-3.5 h-3.5" />
+            <span>로그인 없이 로컬 보관 모드로 시작하기</span>
           </button>
-        </form>
-
-        <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-          HD2Lab 서버(hd2lab.duckdns.org) 프록시 연동 시에는 Google OAuth 헤더로 자동 로그인됩니다.
-        </p>
+        </div>
       </div>
     </div>
   );
